@@ -1,9 +1,15 @@
 import json
+import os
+import threading
 import numpy as np
 import numpy.lib.recfunctions
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
 from pythonosc import udp_client
+
+# PD executables
+macos_pd_executable = '/Applications/Pd-0.55-2.app/Contents/Resources/bin/pd' # on mac
+ubuntu_pd_executable = '/usr/bin/pd' # on linux
 
 
 class AutonomousLooperOnline():
@@ -16,6 +22,7 @@ class AutonomousLooperOnline():
 				ip = "127.0.0.1", # localhost
 				port_snd = 6667, # send port to PD
 				port_rcv = 6666, # receive port from PD
+				UBUNTU=False
 				):
 
 		print()
@@ -56,6 +63,15 @@ class AutonomousLooperOnline():
 
 		self.N_LOOPS = len(self.looping_rules)
 
+		# Execute PD
+		#if not UBUNTU:
+			#pd_looper_path = './02_ALL_PD_2/_main.pd'
+			#command = macos_pd_executable + f' -send "; N_LOOPS {self.N_LOOPS}; BPM {self.TEMPO}; fftsize {self.FFT_WINDOW}; hopsize {self.FFT_HOP_SIZE}; " ' + pd_looper_path
+			#os.system(command)
+			#thread.start_new_thread(os.system, (command,))
+			# start all programs
+			#process = subprocess.Popen(command, shell=True) 
+			#process.wait()
 
 		# PD CONFIGURATIONS
 		self.sr = sr
@@ -63,7 +79,7 @@ class AutonomousLooperOnline():
 		self.FFT_HOP_SIZE = fft_hopSize
 		self.N_BAR_SAMPLES = int(1 / (self.TEMPO / 60) * self.sr * self.BEATS_PER_LOOP) # number of samples in a bar: 1 / BPS * framerate * beats_per_bar
 		self.N_FFT_FRAMES = int(self.N_BAR_SAMPLES / self.FFT_HOP_SIZE) + 1
-
+		
 		# NON MODIFIABLE DYNAMICALLY
 		N_CHROMA = 12
 		N_MELBANDS = 40
@@ -102,16 +118,19 @@ class AutonomousLooperOnline():
 		self.all_descriptors = []
 		self.BARS_COUNT = 0
 		
-		# LOAD PURE DATA LOOPER
 
-
-		## OSC SERVER
+		## OSC ADDRESSES
 		# network parameters
 		self.ip = ip # localhost
 		self.port_snd = port_snd # send port to PD
 		self.port_rcv = port_rcv # receive port from PD
 
-		# define dispatcher
+		# LOAD PURE DATA LOOPER
+		t = threading.Thread(target=self.launchPD,name='ALL_PD',args=(UBUNTU,))
+		#t.daemon = True
+		t.start()
+
+		# OSC SERVER
 		dispatcher = Dispatcher()
 		dispatcher.map("/features/*", self.liveFeaturesIn_handler)
 		dispatcher.set_default_handler(self.default_handler)
@@ -123,6 +142,14 @@ class AutonomousLooperOnline():
 		self.server = BlockingOSCUDPServer((self.ip, self.port_rcv), dispatcher)
 		self.server.serve_forever()  # Blocks forever
 
+
+
+	def launchPD(self, UBUNTU):
+		if not UBUNTU:
+			pd_looper_path = './02_ALL_PD/_main.pd'
+			#command = macos_pd_executable + f' -send "; N_LOOPS {self.N_LOOPS}; BPM {self.TEMPO}; fftsize {self.FFT_WINDOW}; hopsize {self.FFT_HOP_SIZE}; " ' + pd_looper_path
+			command = macos_pd_executable + f' -send "; N_LOOPS {self.N_LOOPS}; BPM {self.TEMPO}; BEATS_PER_LOOP {self.BEATS_PER_LOOP}; PORT_SND {self.port_rcv}; PORT_RCV {self.port_snd}; " ' + pd_looper_path
+			os.system(command)
 
 	def default_handler(self, address, *args):
 	    print(f"DEFAULT {address}: {len(args)}")
@@ -253,7 +280,7 @@ class AutonomousLooperOnline():
 							if self.LOOP_CHANGE_RULE == "newer":
 								print('')
 								print('-'*50)
-								print(f'Bar {bar_num} selected for loop {i+1}')
+								print(f'Bar {self.BARS_COUNT} selected for loop {i+1}')
 								print('-'*50)
 								self.client.send_message("/loopdecision/loop", str(i))
 								self.bars_loop_persisted[i] = 0
@@ -261,10 +288,10 @@ class AutonomousLooperOnline():
 								self.selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 								break
 							elif self.LOOP_CHANGE_RULE == "better":
-								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
+								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= self.selected_loops_satisfaction_degrees[i]:
 									print('')
 									print('-'*50)
-									print(f'Bar {bar_num} selected for loop {i+1}')
+									print(f'Bar {self.BARS_COUNT} selected for loop {i+1}')
 									print('')
 									self.client.send_message("/loopdecision/loop", str(i))
 									self.bars_loop_persisted[i] = 0
