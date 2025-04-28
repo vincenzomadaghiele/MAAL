@@ -75,6 +75,21 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | Metric name | Descriptors computed | Comparison method |
 | --- | --- | :--: |
 | Harmonic similarity| Chroma | MSE on sequence |
+| Harmonic movement - C | Chroma | PCC on sequence |
+| Harmonic movement - D | Chroma, Onset | PCC at onsets |
+| Melodic similarity | Centroid & MSE on sequence |
+| Melodic trajectory - C | Centroid | PCC on sequence |
+| Melodic trajectory - D | Centroid, Onset |  PCC at onsets |
+| Dynamic similarity | RMS | MSE on sequence |
+| Dynamic changes - C | RMS | PCC on sequence |
+| Dynamic changes - D | RMS, Onset |  PCC at onsets |
+| Timbral similarity | Flatness | MSE on sequence |
+| Timbral evolution - C | Flatness | PCC on sequence |
+| Timbral evolution - D | Flatness, Onset |  PCC at onsets |
+| Global spectral overlap | Mel Spectrum  | Difference between averages |
+| Frequency range overlap |  Mel Spectrum  | Overlap of estimated bandwidths |
+| Rhythmic similarity | Binary Rhythm, Onset | Hamming distance | 
+| Rhythmic density | Binary Rhythm, Onset | MSE on quantized sequence | 
 
 
 
