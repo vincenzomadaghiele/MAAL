@@ -63,10 +63,11 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>loopChange-rule</b>: <i>string</i> |  |  |
 | <b>looping-rules</b>: <i>list of RuleCombination</i> |  |  |
 | <b>RuleCombination</b>: <i>list of Rule</i> |  |  |
-| <b>Rule</b>: <i>dict</i> |  |  |
+| <b>Rule</b>: <i>{</i> |  |  |
 | <b>rule-name</b>: <i>string</i> |  |  |
-| <b>rule-type</b>: <i>string</i> |  | <i>"more"</i> or <i>"less"</i> |
+| <b>rule-type</b>: <i>string</i> |  | <i>more</i> or <i>less</i> |
 | <b>rule-threshold</b>: <i>float</i> |  |  |
+| <i>}</i> |  |  |
 
 
 ### Comparison metrics
