@@ -73,7 +73,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 ### Comparison metrics
 
 | Metric name | Descriptors computed | Comparison method |
-| --- | --- | :--: |
+| :---: | --- | -- |
 | Harmonic similarity| Chroma | MSE on sequence |
 | Harmonic movement - C | Chroma | PCC on sequence |
 | Harmonic movement - D | Chroma, Onset | PCC at onsets |
