@@ -64,13 +64,17 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>looping-rules</b>: <i>list of RuleCombination</i> |  |  |
 | <b>RuleCombination</b>: <i>list of Rule</i> |  |  |
 | <b>Rule</b>: <i> dict with keys {</i> |  |  |
-| <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> |  |  |
+| <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> |  | rule name from the table <b>Comparison metrics</b> |
 | <b>&nbsp; &nbsp; rule-type</b>: <i>string</i> |  | <i>more</i> or <i>less</i> |
 | <b>&nbsp; &nbsp; rule-threshold</b>: <i>float</i> |  |  |
 | <i>}</i> |  |  |
 
 
 ### Comparison metrics
+
+| Metric name | Descriptors computed | Comparison method |
+| --- | --- | :--: |
+| <b>Harmonic similarity</b> | Chroma | MSE on sequence |
 
 
 
