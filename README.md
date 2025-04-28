@@ -63,7 +63,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>looping-rules</b>: <i>list of RuleCombination</i> | A list of rule combinations for each loop track. The ALL infers the number of loop tracks from the number of elements in this list. It is composed of RuleCombination lists. | as many as the number of tracks |
 | <b>RuleCombination</b>: <i>list of Rule</i> | A list of rules used for a loop track, composed of many Rule objects. | any |
 | <b>Rule</b>: <i> dict with keys {</i> | A rule object. It is a dictionary with three elements. |  |
-| <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> | The name of the rule. | rule name from the table [comparison metrics](###comparison-metrics) |
+| <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> | The name of the rule. | rule name from the table [comparison metrics](#comparison-metrics) |
 | <b>&nbsp; &nbsp; rule-type</b>: <i>string</i> | The type of rule to be used for comparison. | <i>more</i> or <i>less</i> |
 | <b>&nbsp; &nbsp; rule-threshold</b>: <i>float</i> | The threshold used for comparison. | [0,1] |
 | <i>}</i> |  |  |
