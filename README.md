@@ -49,6 +49,7 @@ Open a terminal. Configure the settings of the looper by modifying a configurati
 ```
 python3 onlineALL.py --CONFIG_FILEPAHT <path/to/configfile.json>
 ```
+This python script will activate the PD Graphic User Interface as well.
 
 
 ## Configuration options
