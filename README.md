@@ -51,22 +51,22 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 
 | Settings name | Description | Value range |
 | --- | --- | :--: |
-| <b>tempo</b>: <i>int</i> |  |  |
-| <b>beats_per_loop</b>: <i>int</i> |  |  |
-| <b>rhythm_subdivision</b>: <i>int</i> |  |  |
-| <b>startup-mode</b>: <i>string</i> |  |  |
-| <b>startup-repetition-numBars</b>: <i>int</i> |  |  |
-| <b>startup-similarityThreshold</b>: <i>float</i> |  |  |
-| <b>startup-firstLoopBar</b>: <i>int</i> |  |  |
-| <b>minLoopsRepetition</b>: <i>int</i> |  |  |
-| <b>maxLoopsRepetition</b>: <i>int</i> |  |  |
-| <b>loopChange-rule</b>: <i>string</i> |  |  |
+| <b>tempo (BPM)</b>: <i>int</i> |  | any |
+| <b>beats_per_loop</b>: <i>int</i> |  | any |
+| <b>rhythm_subdivision</b>: <i>int</i> |  | any |
+| <b>startup-mode</b>: <i>string</i> |  | <i>repetition</i> or <i>user-set</i> |
+| <b>startup-repetition-numBars</b>: <i>int</i> |  | any |
+| <b>startup-similarityThreshold</b>: <i>float</i> |  | [0,1] |
+| <b>startup-firstLoopBar</b>: <i>int</i> | only valid if <b>startup-mode==user-set</b> | any |
+| <b>minLoopsRepetition</b>: <i>int</i> |  | any |
+| <b>maxLoopsRepetition</b>: <i>int</i> |  | any |
+| <b>loopChange-rule</b>: <i>string</i> |  | <i>better</i> or <i>newer</i>  |
 | <b>looping-rules</b>: <i>list of RuleCombination</i> |  |  |
 | <b>RuleCombination</b>: <i>list of Rule</i> |  |  |
 | <b>Rule</b>: <i> dict with keys {</i> |  |  |
 | <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> |  | rule name from the table <b>Comparison metrics</b> |
 | <b>&nbsp; &nbsp; rule-type</b>: <i>string</i> |  | <i>more</i> or <i>less</i> |
-| <b>&nbsp; &nbsp; rule-threshold</b>: <i>float</i> |  |  |
+| <b>&nbsp; &nbsp; rule-threshold</b>: <i>float</i> |  | [0,1] |
 | <i>}</i> |  |  |
 
 
@@ -74,7 +74,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 
 | Metric name | Descriptors computed | Comparison method |
 | --- | --- | :--: |
-| <b>Harmonic similarity</b> | Chroma | MSE on sequence |
+| Harmonic similarity| Chroma | MSE on sequence |
 
 
 
