@@ -77,7 +77,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | Harmonic similarity| Chroma | MSE on sequence |
 | Harmonic movement - C | Chroma | PCC on sequence |
 | Harmonic movement - D | Chroma, Onset | PCC at onsets |
-| Melodic similarity | Centroid & MSE on sequence |
+| Melodic similarity | Centroid | MSE on sequence |
 | Melodic trajectory - C | Centroid | PCC on sequence |
 | Melodic trajectory - D | Centroid, Onset |  PCC at onsets |
 | Dynamic similarity | RMS | MSE on sequence |
