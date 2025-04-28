@@ -62,11 +62,11 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>maxLoopsRepetition</b>: <i>int</i> |  |  |
 | <b>loopChange-rule</b>: <i>string</i> |  |  |
 | <b>looping-rules</b>: <i>list of RuleCombination</i> |  |  |
-| <b>&nbsp; RuleCombination</b>: <i>list of Rule</i> |  |  |
-| <b>&nbsp; &nbsp; Rule</b>: <i> dict with keys {</i> |  |  |
-| <b>&nbsp; &nbsp; &nbsp; rule-name</b>: <i>string</i> |  |  |
-| <b>&nbsp; &nbsp; &nbsp; rule-type</b>: <i>string</i> |  | <i>more</i> or <i>less</i> |
-| <b>&nbsp; &nbsp; &nbsp; rule-threshold</b>: <i>float</i> |  |  |
+| <b>RuleCombination</b>: <i>list of Rule</i> |  |  |
+| <b>Rule</b>: <i> dict with keys {</i> |  |  |
+| <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> |  |  |
+| <b>&nbsp; &nbsp; rule-type</b>: <i>string</i> |  | <i>more</i> or <i>less</i> |
+| <b>&nbsp; &nbsp; rule-threshold</b>: <i>float</i> |  |  |
 | <i>}</i> |  |  |
 
 
