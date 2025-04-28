@@ -69,7 +69,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <i>}</i> |  |  |
 
 
-### Comparison metrics
+### Comparison Metrics
 
 The all works by comparing sound segments according to specific sequence-level comparison functions inspired by musical criteria. Comparison functions evaluate the similarity of two sequences according to musical criteria, returning a similarity index between 0 and 1. Comparison functions can be combined into rules to assign musical functions to each loop track. This is a list of the possible comparison functions: 
 
