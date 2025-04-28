@@ -57,7 +57,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>startup-mode</b>: <i>string</i> |  | <i>repetition</i> or <i>user-set</i> |
 | <b>startup-repetition-numBars</b>: <i>int</i> |  | any |
 | <b>startup-similarityThreshold</b>: <i>float</i> |  | [0,1] |
-| <b>startup-firstLoopBar</b>: <i>int</i> | only valid if <b>startup-mode==user-set</b> | any |
+| <b>startup-firstLoopBar</b>: <i>int</i> | only valid if <b>startup-mode</b>== <i>user-set</i>| any |
 | <b>minLoopsRepetition</b>: <i>int</i> |  | any |
 | <b>maxLoopsRepetition</b>: <i>int</i> |  | any |
 | <b>loopChange-rule</b>: <i>string</i> |  | <i>better</i> or <i>newer</i>  |
