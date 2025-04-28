@@ -3,7 +3,7 @@
 The Autonomous Live Looper (ALL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The ALL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
 The Autonomous Live Looper aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
-[![](https://github.com/vincenzomadaghiele/Latent-benjolin-interface/blob/main/frontend/Meta-Benjo.png)](https://www.youtube.com/watch?v=GnY_RTmCS5k&ab_channel=VincenzoMadaghiele)
+[![](https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png)]()
 
 
 ## Installing dependencies
