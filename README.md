@@ -28,20 +28,20 @@ The `iem_tab` library for PD is used for buffer operations in PD, it can be inst
 
 ## Generating tracks with the Offline ALL
 
-Open a terminal. Configure the settings of the looper by modifying the file `config.json`; set the audiofile to be used for the offline ALL in the python script. Then run:
+Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository; set the audiofile to be used for the offline ALL in the python script. Then run:
 ```
-python3 offlineALL.py
+python3 offlineALL.py --SOUNDFILE_FILEPATH <path/to/soundfile.wav> --CONFIG_FILEPAHT <path/to/configfile.json> --OUTPUT_DIR_PATH <path/to/outputdir>
 ```
-This will generate a the corresponding audiotracks and visualizations in a new folder in `./01_output_offline/...`.
+This will generate a the corresponding audiotracks and visualizations in a new folder with the same name as the soudfile in `<path/to/outputdir>`.
 
 
 
 ## Playing with the Online ALL
 
 #### Python
-Open a terminal. Configure the settings of the looper by modifying the file `config.json`. Then run:
+Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository. Then run:
 ```
-python3 onlineALL.py
+python3 onlineALL.py --CONFIG_FILEPAHT <path/to/configfile.json>
 ```
 
 
