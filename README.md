@@ -3,7 +3,13 @@
 The Autonomous Live Looper (ALL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The ALL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
 The Autonomous Live Looper aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
-<img src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing"  width="80%"/>
+<img src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing"  width="90%"/>
+
+
+More information about the project is in the paper:
+> Vincenzo Madaghiele, Stefano Fasciani, Tejaswinee Kelkar, Çagri Erdem.
+> [**ALL: Autonomous Live Looper for improvised co-creation of musical structures**]().
+> In _Proceedings of AI and Music Creativity Conference (AIMC) 2025_, 10-12 September 2025, Bruxelles (BE).
 
 
 ## Installing dependencies
@@ -92,5 +98,18 @@ The all works by comparing sound segments according to specific sequence-level c
 | Rhythmic similarity | Binary Rhythm, Onset | Hamming distance | 
 | Rhythmic density | Binary Rhythm, Onset | MSE on quantized sequence | 
 
+
+
+## Cite
+```
+@inproceedings{madaghiele2024RLimpro,
+  author    = {Madaghiele, Vincenzo and Fasciani, Stefano and Kelkar, Tejaswinee and Erdem, Çagri},
+  title     = {{ALL: Autonomous Live Looper for improvised co-creation of musical structures}},
+  booktitle = {Proceedings of AI and Music Creativity Conference (AIMC)},
+  year      = {2025},
+  month     = {09},
+  address   = {Bruxellses (BE)}
+}
+```
 
 
