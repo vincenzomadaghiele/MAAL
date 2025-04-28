@@ -57,7 +57,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 
 | Settings name | Description | Value range |
 | --- | --- | :--: |
-| <b>tempo (BPM)</b>: <i>int</i> | Tempo determining the duration of a beat in beats per minute. | any |
+| <b>tempo</b>: <i>int</i> | Tempo determining the duration of a beat in beats per minute (BPM). | any |
 | <b>beats_per_loop</b>: <i>int</i> | Number of beats corresponding to the duration of a loop. | any |
 | <b>rhythm_subdivision</b>: <i>int</i> | Quantization of a loop for rhythm analysis. | any |
 | <b>startup-mode</b>: <i>string</i> | Mode for selection of first loop. | <i>repetition</i> or <i>user-set</i> |
