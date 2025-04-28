@@ -3,11 +3,7 @@
 The Autonomous Live Looper (ALL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The ALL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
 The Autonomous Live Looper aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
-<img     style="display: block; 
-           margin-left: auto;
-           margin-right: auto;
-           width: 80%;"
-            src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing" />	
+<img src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing"  width="80%"/>
 
 
 ## Installing dependencies
@@ -29,22 +25,46 @@ The `zexy` library for PD is used for OSC communication between python and PD, i
 The `iem_tab` library for PD is used for buffer operations in PD, it can be installed by typing `iem_tab` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
 
 
+
 ## Generating tracks with the Offline ALL
 
-#### Python
-Navigate in the terminal to the directory of the server, decide the settings of the looper by modifying the file `config.json`; set the audiofile to be used for the offline ALL in the python script. Then run:
+Open a terminal. Configure the settings of the looper by modifying the file `config.json`; set the audiofile to be used for the offline ALL in the python script. Then run:
 ```
 python3 offlineALL.py
 ```
 This will generate a the corresponding audiotracks and visualizations in a new folder in `./01_output_offline/...`.
 
 
+
 ## Playing with the Online ALL
 
 #### Python
-Navigate in the terminal to the directory of the server, decide the settings of the looper by modifying the file `config.json`. Then run:
+Open a terminal. Configure the settings of the looper by modifying the file `config.json`. Then run:
 ```
 python3 onlineALL.py
 ```
+
+
+## Configuration options
+The ALL can be configured by changing the settings in a `./config.json` file. This is a summary of the possible configuration options:
+
+
+| Settings name | Description | Value range |
+| --- | --- | :--: |
+| <b>tempo</b>: <i>int</i> |  |  |
+| <b>beats_per_loop</b>: <i>int</i> |  |  |
+| <b>rhythm_subdivision</b>: <i>int</i> |  |  |
+| <b>startup-mode</b>: <i>string</i> |  |  |
+| <b>startup-repetition-numBars</b>: <i>int</i> |  |  |
+| <b>startup-similarityThreshold</b>: <i>float</i> |  |  |
+| <b>startup-firstLoopBar</b>: <i>int</i> |  |  |
+| <b>minLoopsRepetition</b>: <i>int</i> |  |  |
+| <b>maxLoopsRepetition</b>: <i>int</i> |  |  |
+| <b>loopChange-rule</b>: <i>string</i> |  |  |
+| <b>looping-rules</b>: <i>list of Rule</i> |  |  |
+
+
+### Comparison metrics
+
 
 
