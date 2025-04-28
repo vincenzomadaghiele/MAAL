@@ -51,17 +51,17 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 
 | Settings name | Description | Value range |
 | --- | --- | :--: |
-| <b>tempo (BPM)</b>: <i>int</i> | Tempo determining the duration of a beat in beats per minute | any |
-| <b>beats_per_loop</b>: <i>int</i> | Number of beats corresponding to the duration of a loop | any |
-| <b>rhythm_subdivision</b>: <i>int</i> | Quantization of a loop for rhythm analysis | any |
-| <b>startup-mode</b>: <i>string</i> | Mode for selection of first loop | <i>repetition</i> or <i>user-set</i> |
-| <b>startup-repetition-numBars</b>: <i>int</i> | Number of consecutive repetitions at for <i>repetition</i> startup mode | any |
-| <b>startup-similarityThreshold</b>: <i>float</i> | Similarity threshold for for <i>repetition</i> startup mode | [0,1] |
-| <b>startup-firstLoopBar</b>: <i>int</i> | Number of first loop to be selected in <i>user-set</i> startup mode | any |
-| <b>minLoopsRepetition</b>: <i>int</i> | Minimum number of repetitions for a loop before it can be dropped | any |
-| <b>maxLoopsRepetition</b>: <i>int</i> | Maximum number of repetitions for a loop after which it is dropped | any |
-| <b>loopChange-rule</b>: <i>string</i> | Rule for changing the content of a loop track | <i>better</i> or <i>newer</i>  |
-| <b>looping-rules</b>: <i>list of RuleCombination</i> | A list of rule combinations for each loop track. The ALL infers the number of loop tracks from the number of elements in this list. It is composed of RuleCombination lists | as many as the number of tracks |
+| <b>tempo (BPM)</b>: <i>int</i> | Tempo determining the duration of a beat in beats per minute. | any |
+| <b>beats_per_loop</b>: <i>int</i> | Number of beats corresponding to the duration of a loop. | any |
+| <b>rhythm_subdivision</b>: <i>int</i> | Quantization of a loop for rhythm analysis. | any |
+| <b>startup-mode</b>: <i>string</i> | Mode for selection of first loop. | <i>repetition</i> or <i>user-set</i> |
+| <b>startup-repetition-numBars</b>: <i>int</i> | Number of consecutive repetitions at for <i>repetition</i> startup mode. | any |
+| <b>startup-similarityThreshold</b>: <i>float</i> | Similarity threshold for for <i>repetition</i> startup mode. | [0,1] |
+| <b>startup-firstLoopBar</b>: <i>int</i> | Number of first loop to be selected in <i>user-set</i> startup mode. | any |
+| <b>minLoopsRepetition</b>: <i>int</i> | Minimum number of repetitions for a loop before it can be dropped. | any |
+| <b>maxLoopsRepetition</b>: <i>int</i> | Maximum number of repetitions for a loop after which it is dropped. | any |
+| <b>loopChange-rule</b>: <i>string</i> | Rule for changing the content of a loop track. | <i>better</i> or <i>newer</i>  |
+| <b>looping-rules</b>: <i>list of RuleCombination</i> | A list of rule combinations for each loop track. The ALL infers the number of loop tracks from the number of elements in this list. It is composed of RuleCombination lists. | as many as the number of tracks |
 | <b>RuleCombination</b>: <i>list of Rule</i> | A list of rules used for a loop track, composed of many Rule objects. | any |
 | <b>Rule</b>: <i> dict with keys {</i> | A rule object. It is a dictionary with three elements. |  |
 | <b>&nbsp; &nbsp; rule-name</b>: <i>string</i> | The name of the rule. | rule name from the table <b>Comparison metrics</b> |
