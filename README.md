@@ -4,7 +4,11 @@ The Autonomous Live Looper (ALL) is a co-creative sampler/looper based on a mult
 The Autonomous Live Looper aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
 <p style="text-align: center;">
-<img src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing"  width="80%"/>	
+<img     style="display: block; 
+           margin-left: auto;
+           margin-right: auto;
+           width: 30%;"
+            src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing"  width="80%"/>	
 </p>
 
 
