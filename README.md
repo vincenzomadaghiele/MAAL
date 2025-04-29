@@ -12,7 +12,7 @@ More information about the project is in the paper:
 > In _Proceedings of AI and Music Creativity Conference (AIMC) 2025_, 10-12 September 2025, Bruxelles (BE).
 
 
-## Installing dependencies
+## Installing
 
 #### Python
 Download and install anaconda [here](https://puredata.info/downloads).
