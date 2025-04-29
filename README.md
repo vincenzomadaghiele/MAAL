@@ -44,12 +44,11 @@ This will generate a the corresponding audiotracks and visualizations in a new f
 
 ## Playing with the Online ALL
 
-#### Python
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository. Then run:
 ```
 python3 onlineALL.py --CONFIG_FILEPAHT <path/to/configfile.json>
 ```
-This python script will activate the PD Graphic User Interface as well.
+This python script will load and set up a PD patch as well.
 
 
 ## Configuration options
