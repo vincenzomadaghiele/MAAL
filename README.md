@@ -32,7 +32,7 @@ The `iem_tab` library for PD is used for buffer operations in PD, it can be inst
 
 
 
-## Generating tracks with the Offline ALL
+## Offline ALL
 
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository; set the audiofile to be used for the offline ALL in the python script. Then run:
 ```
@@ -42,7 +42,7 @@ This will generate a the corresponding audiotracks and visualizations in a new f
 
 
 
-## Playing with the Online ALL
+## Online ALL
 
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository. Then run:
 ```
