@@ -90,46 +90,49 @@ class AutonomousLooperOffline():
 		self.BEAT_SAMPLES = int(beat_seconds * self.sr) # number of samples of one beat
 		self.NUM_BEATS = int(self.signal.shape[0] / self.BEAT_SAMPLES) # number of beats in the track
 
-
-	def computeLooperTrack(self, output_dir_path):
-
-		# SET UTILS FOR ITERATION
 		# make loop envelope
-		crown_window = np.ones(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
+		self.crown_window = np.ones(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
 		fade_perc = 0.01
 		fade_num_samples = int(fade_perc * self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
 		fade_in = np.linspace(0,1,fade_num_samples)
 		fade_out = np.linspace(1,0,fade_num_samples)
-		crown_window[0:fade_num_samples] = fade_in
-		crown_window[crown_window.shape[0]-fade_num_samples:] = fade_out
+		self.crown_window[0:fade_num_samples] = fade_in
+		self.crown_window[self.crown_window.shape[0]-fade_num_samples:] = fade_out
 
-		# initialize variables
-		loops = [np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP) for _ in range(self.N_LOOPS)] # currently running loops
-		bar_samples = [(i * self.BEAT_SAMPLES * self.BEATS_PER_LOOP) for i in range(int(self.NUM_BEATS / self.BEATS_PER_LOOP))] # samples at which each looped bar starts
-		signal_w_loops = [] # complete signal
+		# subdivide into 
+		self.signal_subdivided_samples = [(i * self.BEAT_SAMPLES * self.BEATS_PER_LOOP) for i in range(int(self.NUM_BEATS / self.BEATS_PER_LOOP))] # samples at which each looped bar starts
+
+	def computeLooperTrack(self, output_dir_path):
+
+		# SET UTILS FOR ITERATION
+		# global variables
 		loops_bars = [[] for _ in range(self.N_LOOPS)]
 		loops_audiotracks = np.zeros((self.N_LOOPS, self.signal.shape[0]))
+		
+		# state variables
+		loops = [np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP) for _ in range(self.N_LOOPS)] # currently running loops
 		bars_loop_persisted = np.zeros((self.N_LOOPS)).tolist()
 		selected_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
 		active_loops = [False for _ in range(self.N_LOOPS)]
+		
+		# for intial state
 		previous_bars = [np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP) for _ in range(self.N_BARS_STARTUP-1)]
 		silence_threshold = 0.003
+		user_set_bar_count = 0
 
-		for bar_num in range(1, len(bar_samples)):
+		for bar_num in range(1, len(self.signal_subdivided_samples)):
 
 			print(f'Bar {bar_num}')
 			print('-' * 40)
 			# extract current bar
-			bar = self.signal[int(bar_samples[bar_num-1]):int(bar_samples[bar_num])]
+			bar = self.signal[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])]
 			bar_mean_loudness = librosa.feature.rms(y=bar)[0].mean() # mean loudness of bar
 			# predict next bar
 
-			if self.STARTUP_MODE == "repetition":
-				# in repetition mode the first bar is computed based on 
-				# repetition of similar metrics values over a user-set number of bars
+			if not any(active_loops):
 
-				if not any(active_loops):
-					
+				if self.STARTUP_MODE == "repetition":
+
 					# check that the bar is not completely silent
 					if bar_mean_loudness > silence_threshold:
 						# compare descriptors of current bar with previous bar
@@ -147,151 +150,97 @@ class AutonomousLooperOffline():
 
 								if all(rules_satisfied) and bar_num > self.N_BARS_STARTUP: 
 									print(f'Bar {bar_num} selected for loop {i+1}')
-									loops[i] = crown_window * bar
+									loops[i] = self.crown_window * bar
 									loops_bars[i].append(bar_num)
 									bars_loop_persisted[i] = 0
 									active_loops[i] = True
 
 								# UPDATE LOOPER AUDIOTRACKS
-								if bar_num+2 < len(bar_samples):
-									loops_audiotracks[i,int(bar_samples[bar_num+1]):int(bar_samples[bar_num+2])] = loops[i]
+								if bar_num+2 < len(self.signal_subdivided_samples):
+									loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+2])] = loops[i]
 
 						previous_bars.append(bar)
 						del previous_bars[0] # remove firts element of bar list (make circular buffer)
 				
-				else:
-					# BASIC OPERATIONAL MODE
-					# CHECK RULES AND COMPUTE LOOP SATISFACTION DEGREES
-					all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
-					all_loops_rules_satisfied = [False for _ in range(self.N_LOOPS)]
-					for i in range(len(loops)):
-						loops_without_this = loops.copy()
-						del loops_without_this[i]
-						# COMPUTE COMPARISON METRICS
-						comparison_metrics = self.compareSequenceWithLoops(bar, loops_without_this, self.sr, self.RHYTHM_SUBDIVISIONS)
-						# EVALUATE LOOPING RULES
-						rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
-						all_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
-						all_loops_rules_satisfied[i] = all(rules_satisfied)
+				elif self.STARTUP_MODE == "user-set":
 
-					# UPDATE LOOPS
-					all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
-					all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
-					for i in range(len(loops)):
-						# CHECK IF LOOP SHOULD BE UPDATED
-						if all_loops_rules_satisfied[i]:
-							if bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
-								if self.LOOP_CHANGE_RULE == "newer":
-									print('')
-									print('-'*50)
-									print(f'Bar {bar_num} selected for loop {i+1}')
-									print('-'*50)
-									loops[i] = crown_window * bar
-									loops_bars[i].append(bar_num)
-									bars_loop_persisted[i] = 0
-									active_loops[i] = True
-									selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
-									break
-								elif self.LOOP_CHANGE_RULE == "better":
-									if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
-										print('')
-										print('-'*50)
-										print(f'Bar {bar_num} selected for loop {i+1}')
-										print('')
-										loops[i] = crown_window * bar
-										loops_bars[i].append(bar_num)
-										bars_loop_persisted[i] = 0
-										active_loops[i] = True
-										selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
-										break
-
-					# CHECK IF LOOP SHOULD BE DROPPED
-					for i in range(len(loops)):
-						if bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
-							loops[i] = np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
-							bars_loop_persisted[i] = 0
-							selected_loops_satisfaction_degrees[i] = 0
-							active_loops[i] = False
-						else: 
-							bars_loop_persisted[i] += 1
-
-					# UPDATE LOOPER AUDIOTRACKS
-					for i in range(len(loops)):
-						if bar_num+2 < len(bar_samples):
-							loops_audiotracks[i,int(bar_samples[bar_num+1]):int(bar_samples[bar_num+2])] = loops[i]
-
-
-			elif self.STARTUP_MODE == "user-set":
-
-				# START AFTER USER-SET FIRST LOOP BEAT
-				if bar_num >= self.STARTUP_LOOP_BAR_N:
-
-					# implement loop selection
-					if bar_num == self.STARTUP_LOOP_BAR_N:
+					user_set_bar_count += 1
+					# START AFTER USER-SET NUMBER OF LOOP BEATS
+					if user_set_bar_count == self.STARTUP_LOOP_BAR_N:
 						# place user-set loop in bar
-						loops[0] = crown_window * bar
+						loops[0] = self.crown_window * bar
 						loops_bars[0].append(bar_num)
+						bars_loop_persisted[0] = 0
+						active_loops[0] = True
+						user_set_bar_count = 0
 
+						# UPDATE LOOPER AUDIOTRACKS
+						if bar_num+2 < len(self.signal_subdivided_samples):
+							loops_audiotracks[0,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+2])] = loops[0]
 
-					# BASIC OPERATIONAL MODE
-					# CHECK RULES AND COMPUTE LOOP SATISFACTION DEGREES
-					all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
-					all_loops_rules_satisfied = [False for _ in range(self.N_LOOPS)]
-					for i in range(len(loops)):
-						loops_without_this = loops.copy()
-						del loops_without_this[i]
-						# COMPUTE COMPARISON METRICS
-						comparison_metrics = self.compareSequenceWithLoops(bar, loops_without_this, self.sr, self.RHYTHM_SUBDIVISIONS)
-						# EVALUATE LOOPING RULES
-						rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
-						all_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
-						all_loops_rules_satisfied[i] = all(rules_satisfied)
+			else:
+				
+				# BASIC OPERATIONAL MODE
+				# CHECK RULES AND COMPUTE LOOP SATISFACTION DEGREES
+				all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
+				all_loops_rules_satisfied = [False for _ in range(self.N_LOOPS)]
+				for i in range(len(loops)):
+					loops_without_this = loops.copy()
+					del loops_without_this[i]
+					# COMPUTE COMPARISON METRICS
+					comparison_metrics = self.compareSequenceWithLoops(bar, loops_without_this, self.sr, self.RHYTHM_SUBDIVISIONS)
+					# EVALUATE LOOPING RULES
+					rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
+					all_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
+					all_loops_rules_satisfied[i] = all(rules_satisfied)
 
-					# CHECK LOOP UPDATES
-					all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
-					all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
-					for i in range(len(loops)):
-						# CHECK IF LOOP SHOULD BE UPDATED
-						if all_loops_rules_satisfied[i]:
-							if bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
-								if self.LOOP_CHANGE_RULE == "newer":
+				# CHECK LOOP UPDATES
+				all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
+				all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
+				for i in range(len(loops)):
+					# CHECK IF LOOP SHOULD BE UPDATED
+					if all_loops_rules_satisfied[i]:
+						if bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
+							if self.LOOP_CHANGE_RULE == "newer":
+								print('')
+								print('-'*50)
+								print(f'Bar {bar_num} selected for loop {i+1}')
+								print('-'*50)
+								loops[i] = self.crown_window * bar
+								loops_bars[i].append(bar_num)
+								bars_loop_persisted[i] = 0
+								active_loops[i] = True
+								selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
+								break
+							elif self.LOOP_CHANGE_RULE == "better":
+								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
 									print('')
 									print('-'*50)
 									print(f'Bar {bar_num} selected for loop {i+1}')
-									print('-'*50)
-									loops[i] = crown_window * bar
+									print('')
+									loops[i] = self.crown_window * bar
 									loops_bars[i].append(bar_num)
 									bars_loop_persisted[i] = 0
 									active_loops[i] = True
 									selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 									break
-								elif self.LOOP_CHANGE_RULE == "better":
-									if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
-										print('')
-										print('-'*50)
-										print(f'Bar {bar_num} selected for loop {i+1}')
-										print('')
-										loops[i] = crown_window * bar
-										loops_bars[i].append(bar_num)
-										bars_loop_persisted[i] = 0
-										active_loops[i] = True
-										selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
-										break
 
-					for i in range(len(loops)):
-						# CHECK IF LOOP SHOULD BE DROPPED
-						if bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
-							loops[i] = np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
-							bars_loop_persisted[i] = 0
-							selected_loops_satisfaction_degrees[i] = 0
-							active_loops[i] = False
-						else: 
-							bars_loop_persisted[i] += 1
+				for i in range(len(loops)):
+					# CHECK IF LOOP SHOULD BE DROPPED
+					if bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
+						loops[i] = np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
+						bars_loop_persisted[i] = 0
+						selected_loops_satisfaction_degrees[i] = 0
+						active_loops[i] = False
+					else: 
+						bars_loop_persisted[i] += 1
 
-					# UPDATE LOOPER AUDIOTRACKS
-					for i in range(len(loops)):
-						if bar_num+2 < len(bar_samples):
-							loops_audiotracks[i,int(bar_samples[bar_num+1]):int(bar_samples[bar_num+2])] = loops[i]
+
+				# UPDATE LOOPER AUDIOTRACKS
+				for i in range(len(loops)):
+					if bar_num+2 < len(self.signal_subdivided_samples):
+						loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+2])] = loops[i]
+
 
 
 		# SAVE TO DISK
@@ -300,7 +249,6 @@ class AutonomousLooperOffline():
 		if os.path.isdir(output_dir):
 			shutil.rmtree(output_dir)
 		os.mkdir(output_dir)
-
 
 		# SAVE SOUND FILES TO DISK
 		all_loops = loops_audiotracks.sum(axis=0) #/ self.N_LOOPS
@@ -331,9 +279,9 @@ class AutonomousLooperOffline():
 			librosa.display.waveshow(loops_audiotracks[n], sr=self.sr, ax=ax[n+1], label=f'loop {n+1}', alpha=0.7, color=colors[n])
 			loop_in_sig = np.zeros_like(self.signal)
 			for bar_num in loops_bars[n]:
-				loop_in_sig[int(bar_samples[bar_num-1]):int(bar_samples[bar_num])] = self.signal[int(bar_samples[bar_num-1]):int(bar_samples[bar_num])]
-				ax[0].vlines(librosa.samples_to_time(int(bar_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color=colors[n], alpha=0.9, linestyle='--', lw=0.8)
-				ax[n+1].vlines(librosa.samples_to_time(int(bar_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color='black', alpha=0.8, linestyle='--', lw=0.8)
+				loop_in_sig[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])] = self.signal[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])]
+				ax[0].vlines(librosa.samples_to_time(int(self.signal_subdivided_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color=colors[n], alpha=0.9, linestyle='--', lw=0.8)
+				ax[n+1].vlines(librosa.samples_to_time(int(self.signal_subdivided_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color='black', alpha=0.8, linestyle='--', lw=0.8)
 			ax[0].plot(librosa.samples_to_time(np.arange(0, self.signal.shape[0]), sr=self.sr), loop_in_sig, label=f'loop {n+1}', alpha=0.6, color=colors[n])
 			ax[n+1].xaxis.set_visible(False)
 			ax[n+1].set_ylabel(f"$L_{n+1}$", rotation=0, ha='right', fontsize=13)
@@ -362,6 +310,7 @@ class AutonomousLooperOffline():
 		if self.PLOT_FLAG:
 			plt.show()
 
+
 		if self.MAKE_VIDEO:
 
 			print('Generating cursor animation...')
@@ -386,9 +335,9 @@ class AutonomousLooperOffline():
 					librosa.display.waveshow(loops_audiotracks[n], sr=self.sr, ax=ax[n+1], label=f'loop {n+1}', alpha=0.7, color=colors[n])
 					loop_in_sig = np.zeros_like(self.signal)
 					for bar_num in loops_bars[n]:
-						loop_in_sig[int(bar_samples[bar_num-1]):int(bar_samples[bar_num])] = self.signal[int(bar_samples[bar_num-1]):int(bar_samples[bar_num])]
-						ax[0].vlines(librosa.samples_to_time(int(bar_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color=colors[n], alpha=0.9, linestyle='--', lw=0.8)
-						ax[n+1].vlines(librosa.samples_to_time(int(bar_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color='black', alpha=0.8, linestyle='--', lw=0.8)
+						loop_in_sig[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])] = self.signal[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])]
+						ax[0].vlines(librosa.samples_to_time(int(self.signal_subdivided_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color=colors[n], alpha=0.9, linestyle='--', lw=0.8)
+						ax[n+1].vlines(librosa.samples_to_time(int(self.signal_subdivided_samples[bar_num-1]), sr=self.sr), -1*vertical_line_length, vertical_line_length, color='black', alpha=0.8, linestyle='--', lw=0.8)
 					ax[0].plot(librosa.samples_to_time(np.arange(0, self.signal.shape[0]), sr=self.sr), loop_in_sig, label=f'loop {n+1}', alpha=0.6, color=colors[n])
 					ax[n+1].xaxis.set_visible(False)
 					ax[n+1].set_ylabel(f"$L_{n+1}$", rotation=0, ha='right', fontsize=13)
@@ -526,7 +475,6 @@ class AutonomousLooperOffline():
 							spectral_energy_difference_coefficient, spectral_energy_overlap_coefficient,
 							binary_comparison_coefficient, rhythm_density_coefficient]
 
-		#return rhythm_metrics, bandwidth_metrics, chroma_metrics, loudness_metrics, centroid_metrics, flatness_metrics
 		return comparison_metrics
 
 
@@ -602,6 +550,7 @@ class AutonomousLooperOffline():
 			binary_rhythm.append(flag)
 			dynamic_binary_rhythm.append(flag_dynamic)
 
+		'''
 		# plot rhythmic subdivisions
 		subdivs = list(range(rhythm_subdivisions))
 		if plotflag:
@@ -612,6 +561,7 @@ class AutonomousLooperOffline():
 			ax.set_ylabel('RMS loudness')
 			ax.set_ylim([0,0.1])
 			plt.show()
+		'''
 
 		bar_peaks_times = librosa.frames_to_time(bar_peaks, sr=sr)
 		peak_distances = [ float(bar_peaks_times[i]-bar_peaks_times[i-1]) for i in range(1,bar_peaks_times.shape[0]) ]

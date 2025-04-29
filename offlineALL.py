@@ -1,3 +1,4 @@
+import sys
 import argparse
 from offlineALLclass import AutonomousLooperOffline
 
@@ -5,7 +6,7 @@ if __name__ == '__main__':
 
 	# parse arguments
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--SOUNDFILE_FILEPATH', type=str, default='./00_corpus/USE CASE 1.wav',
+	parser.add_argument('--SOUNDFILE_FILEPATH', type=str, default='./00_corpus/USE CASE 2.wav',
 						help='name of the folder containing the soundfile')
 	parser.add_argument('--CONFIG_FILEPAHT', type=str, default='./config.json',
 						help='path to the configuration file')

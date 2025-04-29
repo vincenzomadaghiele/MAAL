@@ -1,72 +1,59 @@
 {
-    "tempo": 144,
-    "beats_per_loop": 8,
-    "rhythm_subdivision": 16,
+    "tempo": 105,
+    "beats_per_loop": 4,
+    "rhythm_subdivision": 32,
     "looping-rules": [
         [
             {
-                "rule-name": "Melodic trajectory - D",
-                "rule-type": "less",
-                "rule-threshold": -0.1
-            },
-            {
-                "rule-name": "Frequency range overlap",
-                "rule-type": "less",
-                "rule-threshold": 0.9
-            },
-            {
-                "rule-name": "Harmonic similarity",
+                "rule-name": "Timbral similarity",
                 "rule-type": "more",
-                "rule-threshold": 0.005
+                "rule-threshold": 0.001
             },
             {
                 "rule-name": "Rhythmic similarity",
-                "rule-type": "more",
-                "rule-threshold": 0.1
+                "rule-type": "less",
+                "rule-threshold": 0.8
             }
         ],
         [
             {
-                "rule-name": "Melodic trajectory - D",
-                "rule-type": "less",
-                "rule-threshold": -0.3
-            },
-            {
-                "rule-name": "Frequency range overlap",
-                "rule-type": "less",
-                "rule-threshold": 0.85
-            },
-            {
-                "rule-name": "Harmonic similarity",
+                "rule-name": "Timbral similarity",
                 "rule-type": "more",
-                "rule-threshold": 0.008
+                "rule-threshold": 0.001
             },
             {
                 "rule-name": "Rhythmic similarity",
-                "rule-type": "more",
-                "rule-threshold": 0.1
+                "rule-type": "less",
+                "rule-threshold": 0.7
             }
         ],
         [
             {
-                "rule-name": "Melodic trajectory - D",
-                "rule-type": "less",
-                "rule-threshold": -0.1
-            },
-            {
-                "rule-name": "Frequency range overlap",
-                "rule-type": "less",
-                "rule-threshold": 0.95
-            },
-            {
-                "rule-name": "Harmonic similarity",
+                "rule-name": "Timbral similarity",
                 "rule-type": "more",
-                "rule-threshold": 0.005
+                "rule-threshold": 0.001
             },
             {
                 "rule-name": "Rhythmic similarity",
+                "rule-type": "less",
+                "rule-threshold": 0.8
+            }
+        ],
+        [
+            {
+                "rule-name": "Dynamic similarity",
                 "rule-type": "more",
-                "rule-threshold": 0.1
+                "rule-threshold": 0.05
+            },
+            {
+                "rule-name": "Rhythmic density",
+                "rule-type": "more",
+                "rule-threshold": 0.05
+            },
+            {
+                "rule-name": "Rhythmic similarity",
+                "rule-type": "less",
+                "rule-threshold": 0.8
             }
         ]
     ],
