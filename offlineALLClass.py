@@ -293,6 +293,7 @@ class AutonomousLooperOffline():
 						if bar_num+2 < len(bar_samples):
 							loops_audiotracks[i,int(bar_samples[bar_num+1]):int(bar_samples[bar_num+2])] = loops[i]
 
+
 		# SAVE TO DISK
 		filename = self.soundfile_filepath.split('/')[-1].split('.')[0]
 		output_dir = f'{output_dir_path}/{filename}'
@@ -527,6 +528,7 @@ class AutonomousLooperOffline():
 
 		#return rhythm_metrics, bandwidth_metrics, chroma_metrics, loudness_metrics, centroid_metrics, flatness_metrics
 		return comparison_metrics
+
 
 	def computeSequenceDescriptors(self, bar, sr, rhythm_subdivisions):
 
@@ -992,4 +994,14 @@ class AutonomousLooperOffline():
 			print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation.mean():.3f}")
 
 		return discrete_time_correlation_coefficient, discrete_pearson_correlation.mean()
+
+
+if __name__ == '__main__': 
+
+	## DEFINE SCRIPT PARAMETERS
+	soundfile_filepath = './00_corpus/USE CASE 1.wav'
+	config_filepath = './config.json'
+	output_dir_path = "./01_output_offline"
+	looper = AutonomousLooperOffline(soundfile_filepath, config_filepath=config_filepath, plotFlag=False)
+	looper.computeLooperTrack(output_dir_path)
 
