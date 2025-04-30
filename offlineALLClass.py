@@ -22,7 +22,8 @@ class AutonomousLooperOffline():
 				max_signal_size=10000000,
 				seed=None,
 				plotFlag=False,
-				makeVideo=False):
+				makeVideo=False, 
+				verbose=0):
 
 		print()
 		print('Initializing Autonomous Looper offline')
@@ -62,6 +63,7 @@ class AutonomousLooperOffline():
 
 		# CONFIGURE LOOP STATION WITH RUN OPTIONS
 		self.PLOT_FLAG = plotFlag
+		self.verbose = verbose
 		self.MAKE_VIDEO = makeVideo
 		self.N_LOOPS = len(self.looping_rules)
 		self.MAX_SIGNAL_SIZE = max_signal_size
@@ -122,7 +124,8 @@ class AutonomousLooperOffline():
 
 		for bar_num in range(1, len(self.signal_subdivided_samples)):
 
-			print(f'Bar {bar_num}')
+			print('')
+			print(f'Segment {bar_num}')
 			print('-' * 40)
 			# extract current bar
 			bar = self.signal[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])]
@@ -146,10 +149,15 @@ class AutonomousLooperOffline():
 							if not any(active_loops): # check that loops haven't been activated in the meantime
 								
 								# check if repetition rules are satisfied
-								rules_satisfied = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
+								#rules_satisfied = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
 
-								if all(rules_satisfied) and bar_num > self.N_BARS_STARTUP: 
-									print(f'Bar {bar_num} selected for loop {i+1}')
+								rules_satisfied, satisfaction_degree = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
+								print(f'Loop {i+1}')
+								print(f'Rule satisfaction degree {satisfaction_degree:.3f}')
+								#if all(rules_satisfied): 
+								if satisfaction_degree >= self.STARTUP_SIMILARITY_THR: 
+									print('')
+									print(f'Decision I_{i+1} ---> Segment {bar_num} selected for loop {i+1}')
 									loops[i] = self.crown_window * bar
 									loops_bars[i].append(bar_num)
 									bars_loop_persisted[i] = 0
@@ -173,6 +181,8 @@ class AutonomousLooperOffline():
 						bars_loop_persisted[0] = 0
 						active_loops[0] = True
 						user_set_bar_count = 0
+						print('')
+						print(f'Decision I_{i+1} ---> {bar_num} selected for loop {i+1}')
 
 						# UPDATE LOOPER AUDIOTRACKS
 						if bar_num+2 < len(self.signal_subdivided_samples):
@@ -180,6 +190,7 @@ class AutonomousLooperOffline():
 
 			else:
 				
+				updated = False
 				# BASIC OPERATIONAL MODE
 				# CHECK RULES AND COMPUTE LOOP SATISFACTION DEGREES
 				all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
@@ -193,6 +204,9 @@ class AutonomousLooperOffline():
 					rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
 					all_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 					all_loops_rules_satisfied[i] = all(rules_satisfied)
+					print(f'Loop track L_{i+1}')
+					print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
+
 
 				# CHECK LOOP UPDATES
 				all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
@@ -203,38 +217,42 @@ class AutonomousLooperOffline():
 						if bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
 							if self.LOOP_CHANGE_RULE == "newer":
 								print('')
-								print('-'*50)
-								print(f'Bar {bar_num} selected for loop {i+1}')
-								print('-'*50)
+								print(f'Decision A_{i+1} ---> Segment {bar_num} selected for loop {i+1}')
 								loops[i] = self.crown_window * bar
 								loops_bars[i].append(bar_num)
 								bars_loop_persisted[i] = 0
 								active_loops[i] = True
 								selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
+								updated = True
 								break
 							elif self.LOOP_CHANGE_RULE == "better":
 								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
 									print('')
-									print('-'*50)
-									print(f'Bar {bar_num} selected for loop {i+1}')
-									print('')
+									print(f'Decision A_{i+1} ---> Segment {bar_num} selected for loop {i+1}')
 									loops[i] = self.crown_window * bar
 									loops_bars[i].append(bar_num)
 									bars_loop_persisted[i] = 0
 									active_loops[i] = True
 									selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
+									updated = True
 									break
 
 				for i in range(len(loops)):
 					# CHECK IF LOOP SHOULD BE DROPPED
 					if bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
+						print('')
+						print(f'Decision Z_{i+1} ---> Clearing loop {i+1} audio buffer')
 						loops[i] = np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
 						bars_loop_persisted[i] = 0
 						selected_loops_satisfaction_degrees[i] = 0
 						active_loops[i] = False
+						updated = True
 					else: 
 						bars_loop_persisted[i] += 1
 
+				if not updated:
+					print('')
+					print(f'Decision R ---> No updates')
 
 				# UPDATE LOOPER AUDIOTRACKS
 				for i in range(len(loops)):
@@ -406,7 +424,25 @@ class AutonomousLooperOffline():
 
 		return rules_satisfied, rules_satisfaction_degree
 
+	def evaluateStartupRepetitionCriteria(self, looping_rules, previous_metrics, comparison_metrics):
 
+		satisfaction_degree = 0
+		rules_satisfied = []
+		for rule in looping_rules:
+			for i in range(len(self.RULE_NAMES)):
+				if rule["rule-name"] == self.RULE_NAMES[i]:
+					# get descriptor values correpsonding to these metrics
+					metrics_values = [metrics_bar[i] for metrics_bar in previous_metrics]
+					satisfaction_degree += np.sum(metrics_values) / len(metrics_values)
+					if all(value > self.STARTUP_SIMILARITY_THR for value in metrics_values):
+						rules_satisfied.append(True)
+					else: 
+						rules_satisfied.append(False)
+
+		satisfaction_degree /= len(looping_rules)
+		return rules_satisfied, satisfaction_degree
+
+	'''
 	def evaluateStartupRepetitionCriteria(self, looping_rules, previous_metrics, comparison_metrics):
 
 		rules_satisfied = []
@@ -420,6 +456,7 @@ class AutonomousLooperOffline():
 						rules_satisfied.append(False)
 
 		return rules_satisfied
+	'''
 
 
 	def compareSequenceWithLoops(self, bar, loops, sr, rhythm_subdivisions):
@@ -430,42 +467,49 @@ class AutonomousLooperOffline():
 			sum_of_loops += loop
 		sumOfLoops_sequence_descriptors = self.computeSequenceDescriptors(sum_of_loops, sr, rhythm_subdivisions)
 	
-		print('Binary rhythms:')
+		if self.verbose >= 1:
+			print('Binary rhythms:')
 		binary_comparison_coefficient, rhythm_density_coefficient = self.compareBinaryRhythms(bar_sequence_descriptors[0], sumOfLoops_sequence_descriptors[0], rhythm_subdivisions)
 
 		## SPECTRAL BANDWIDTH
-		print('Spectral bandwidth:')
+		if self.verbose >= 1:
+			print('Spectral bandwidth:')
 		spectral_energy_overlap_coefficient, spectral_energy_difference_coefficient = self.compareSpectralBandwidth(bar_sequence_descriptors[2], bar_sequence_descriptors[3], bar_sequence_descriptors[4], 
 																													sumOfLoops_sequence_descriptors[2], sumOfLoops_sequence_descriptors[3], sumOfLoops_sequence_descriptors[4])
 
 		## CHROMA
-		print('Chroma:')
+		if self.verbose >= 1:
+			print('Chroma:')
 		chroma_AE = self.computeTwodimensionalAE(bar_sequence_descriptors[5], sumOfLoops_sequence_descriptors[5])
 		_, chroma_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[5], sumOfLoops_sequence_descriptors[5])
 		_, chroma_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[6], 
 																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[6])
 
 		## LOUDNESS
-		print('Loudness:')
+		if self.verbose >= 1:
+			print('Loudness:')
 		loudness_MSE = self.computeSignalsMSE(bar_sequence_descriptors[7], sumOfLoops_sequence_descriptors[7])
 		_, loudness_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[7], sumOfLoops_sequence_descriptors[7])
 		_, loudness_discrete_correlation = self.computeDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[8], 
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[8])
 
 		## CENTROID
-		print('Spectral centroid:')
+		if self.verbose >= 1:
+			print('Spectral centroid:')
 		centroid_MSE = self.computeSignalsMSE(bar_sequence_descriptors[9], sumOfLoops_sequence_descriptors[9])
 		_, centroid_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[9], sumOfLoops_sequence_descriptors[9])
 		_, centroid_discrete_correlation = self.computeDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[10], 
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[10])
 
 		## FLATNESS
-		print('Spectral flatness:')
+		if self.verbose >= 1:
+			print('Spectral flatness:')
 		flatness_MSE = self.computeSignalsMSE(bar_sequence_descriptors[11], sumOfLoops_sequence_descriptors[11])
 		_, flatness_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[11], sumOfLoops_sequence_descriptors[11])
 		_, flatness_discrete_correlation = self.computeDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[12], 
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[12])
-		print()
+		if self.verbose >= 1:
+			print()
 
 		# these have to match the order in self.RULE_NAMES
 		comparison_metrics = [chroma_AE, chroma_continuous_correlation/2+0.5, chroma_discrete_correlation/2+0.5,
@@ -682,14 +726,17 @@ class AutonomousLooperOffline():
 
 	# FUNCTIONS TO COMPARE FEATURES
 	def compareBinaryRhythms(self, binary_rhythm1, binary_rhythm2, rhythm_subdivisions=16):
-		print(np.array(binary_rhythm1))
-		print(np.array(binary_rhythm2))
+		if self.verbose >= 1:
+			print(np.array(binary_rhythm1))
+			print(np.array(binary_rhythm2))
 		binary_comparison = [1 if binary_rhythm1[i] == binary_rhythm2[i] else 0 for i in range(len(binary_rhythm1))]
 		binary_comparison_coefficient = sum(binary_comparison) / rhythm_subdivisions 
-		print(f'Binary Comparison coefficient: {binary_comparison_coefficient:.3f}')
+		if self.verbose >= 1:
+			print(f'Binary Comparison coefficient: {binary_comparison_coefficient:.3f}')
 
 		rhythm_density_coefficient = abs(np.array(binary_rhythm1).sum() - np.array(binary_rhythm2).sum()) / rhythm_subdivisions
-		print(f"Rhythm Density Comparison coefficient: {rhythm_density_coefficient:.3f}")
+		if self.verbose >= 1:
+			print(f"Rhythm Density Comparison coefficient: {rhythm_density_coefficient:.3f}")
 		return binary_comparison_coefficient, rhythm_density_coefficient
 
 	def compareSpectralBandwidth(self, CQT1, CQT1_center_of_mass, CQT1_var, CQT2, CQT2_center_of_mass, CQT2_var, plotflag=False):
@@ -725,10 +772,12 @@ class AutonomousLooperOffline():
 		spectral_energy_overlap_index = max(0, 
 		    min(CQT1_center_of_mass+CQT1_var, CQT2_center_of_mass+CQT2_var) - max(CQT1_center_of_mass-CQT1_var, CQT2_center_of_mass-CQT2_var))
 		spectral_energy_overlap_coefficient = min(spectral_energy_overlap_index, min(CQT1_var*2, CQT2_var*2)) / min(CQT1_var*2, CQT2_var*2)
-		print(f"Spectral energy overlap coefficient: {spectral_energy_overlap_coefficient:.3f}")
+		if self.verbose >= 1:
+			print(f"Spectral energy overlap coefficient: {spectral_energy_overlap_coefficient:.3f}")
 
 		spectral_energy_difference_coefficient = np.abs(CQT1_mean - CQT2_mean).mean()
-		print(f"Spectral energy difference coefficient: {spectral_energy_difference_coefficient:.3f}")
+		if self.verbose >= 1:
+			print(f"Spectral energy difference coefficient: {spectral_energy_difference_coefficient:.3f}")
 		return spectral_energy_overlap_coefficient, spectral_energy_difference_coefficient
 
 	def computeSignalsMSE(self, signal1, signal2):
@@ -737,7 +786,8 @@ class AutonomousLooperOffline():
 		normalized_signal1 = (signal1 - minsignal) / (maxsignal - minsignal)
 		normalized_signal2 = (signal2 - minsignal) / (maxsignal - minsignal)
 		MSE = ((normalized_signal1 - normalized_signal2)**2).mean()
-		print(f'MSE between the two signal is: {MSE:.3f}')
+		if self.verbose >= 1:
+			print(f'MSE between the two signal is: {MSE:.3f}')
 		return MSE
 
 	def computeContinuousCorrelation(self, signal1, signal2, plotflag=False):
@@ -768,11 +818,13 @@ class AutonomousLooperOffline():
 			if np.isnan(pearson_correlation):
 				pearson_correlation = 0
 
-			print(f"Continuous pearson correlation coefficient: {pearson_correlation:.3f}")
+			if self.verbose >= 1:
+				print(f"Continuous pearson correlation coefficient: {pearson_correlation:.3f}")
 		else:
 			time_correlation_coefficient = 0
 			pearson_correlation = 0
-			print(f"Continuous pearson correlation coefficient: {pearson_correlation:.3f}")
+			if self.verbose >= 1:
+				print(f"Continuous pearson correlation coefficient: {pearson_correlation:.3f}")
 
 		return time_correlation_coefficient, pearson_correlation
 
@@ -833,7 +885,8 @@ class AutonomousLooperOffline():
 			if np.isnan(discrete_pearson_correlation):
 				discrete_pearson_correlation = 0
 
-			print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation:.3f}")
+			if self.verbose >= 1:
+				print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation:.3f}")
 		else: 
 			discrete_time_correlation_coefficient = 0
 			discrete_pearson_correlation = 0
@@ -846,7 +899,8 @@ class AutonomousLooperOffline():
 		normalized_signal1 = (signal1 - minsignal) / (maxsignal - minsignal)
 		normalized_signal2 = (signal2 - minsignal) / (maxsignal - minsignal)
 		MSE = ((normalized_signal1 - normalized_signal2)**2).mean(axis=1).mean()
-		print(f'MSE between the two signal is: {MSE:.3f}')
+		if self.verbose >= 1:
+			print(f'MSE between the two signal is: {MSE:.3f}')
 		return MSE
 
 	def computeTwodimensionalAE(self, signal1, signal2, plotflag=False):
@@ -858,7 +912,8 @@ class AutonomousLooperOffline():
 			plt.show()
 
 		similarity_coefficient = np.abs(np.mean(signal1.mean(axis=1) - signal2.mean(axis=1)))
-		print(f"Absolute Error difference coefficient: {similarity_coefficient:.3f}")
+		if self.verbose >= 1:
+			print(f"Absolute Error difference coefficient: {similarity_coefficient:.3f}")
 		return similarity_coefficient
 
 	def computeTwodimensionalContinuousCorrelation(self, signal1, signal2, plotflag=False):
@@ -883,7 +938,8 @@ class AutonomousLooperOffline():
 		if np.isnan(np.sum(continuous_pearson_correlation)):
 			continuous_pearson_correlation = np.array([0])
 
-		print(f"Continuous pearson correlation coefficient: {continuous_pearson_correlation.mean():.3f}")
+		if self.verbose >= 1:
+			print(f"Continuous pearson correlation coefficient: {continuous_pearson_correlation.mean():.3f}")
 		return time_correlation_coefficient, continuous_pearson_correlation.mean()
 
 	def computeTwodimensionalDiscreteCorrelation(self, onsets1, values1, onsets2, values2):
@@ -937,11 +993,13 @@ class AutonomousLooperOffline():
 					discrete_pearson_correlation = np.array([0])
 
 			except:
-				print('COULD NOT COMPUTE CORRELATION')
+				if self.verbose >= 1:
+					print('COULD NOT COMPUTE CORRELATION')
 				discrete_time_correlation_coefficient = np.array([0])
 				discrete_pearson_correlation = np.array([0])
 
-			print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation.mean():.3f}")
+			if self.verbose >= 1:
+				print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation.mean():.3f}")
 
 		return discrete_time_correlation_coefficient, discrete_pearson_correlation.mean()
 
