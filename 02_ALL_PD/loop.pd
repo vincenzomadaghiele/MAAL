@@ -234,7 +234,6 @@
 #X obj 446 504 s \$4-loop-active-\$1-rcv;
 #X msg 446 477 0;
 #X obj 423 366 r \$4-loop-active-\$1-snd;
-#X floatatom 539 418 5 0 0 0 - - - 0;
 #X obj 266 603 r \$4-pan-loop-\$1;
 #X connect 0 0 19 0;
 #X connect 1 0 7 0;
@@ -364,5 +363,4 @@
 #X connect 127 0 126 0;
 #X connect 128 0 100 0;
 #X connect 128 0 114 1;
-#X connect 128 0 129 0;
-#X connect 130 0 102 0;
+#X connect 129 0 102 0;

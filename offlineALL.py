@@ -1,6 +1,6 @@
 import sys
 import argparse
-from offlineALLclass import AutonomousLooperOffline
+from offlineALLclass_v3 import AutonomousLooperOffline
 
 if __name__ == '__main__': 
 

@@ -133,7 +133,7 @@ class AutonomousLooperOffline():
 			# predict next bar
 
 			if not any(active_loops):
-
+				# STARTUP CONDITIONS
 				if self.STARTUP_MODE == "repetition":
 
 					# check that the bar is not completely silent
@@ -145,24 +145,26 @@ class AutonomousLooperOffline():
 							comparison_metrics = self.compareSequenceWithLoops(bar, [previousbar], self.sr, self.RHYTHM_SUBDIVISIONS)
 							previous_metrics.append(comparison_metrics)
 						
+						# Compute rules satisfaction degrees for each track
+						all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
 						for i in range(len(loops)):
-							if not any(active_loops): # check that loops haven't been activated in the meantime
-								
-								# check if repetition rules are satisfied
-								#rules_satisfied = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
+							rules_satisfied, satisfaction_degree = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
+							print(f'Loop {i+1}')
+							print(f'Rule satisfaction degree {satisfaction_degree:.3f}')
+							all_loops_satisfaction_degrees[i] = satisfaction_degree
 
-								rules_satisfied, satisfaction_degree = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
-								print(f'Loop {i+1}')
-								print(f'Rule satisfaction degree {satisfaction_degree:.3f}')
-								#if all(rules_satisfied): 
-								if satisfaction_degree >= self.STARTUP_SIMILARITY_THR: 
+						# Start checking rules from the largest satisfaction degree
+						loops_sorted_by_satisfaction_degree = np.argsort(np.array(all_loops_satisfaction_degrees)).tolist()
+						for i in range(len(loops_sorted_by_satisfaction_degree)):
+							if not any(active_loops): # check that loops haven't been activated in the meantime
+								if all_loops_satisfaction_degrees[i] >= self.STARTUP_SIMILARITY_THR: 
 									print('')
 									print(f'Decision I_{i+1} ---> Segment {bar_num} selected for loop {i+1}')
 									loops[i] = self.crown_window * bar
 									loops_bars[i].append(bar_num)
 									bars_loop_persisted[i] = 0
 									active_loops[i] = True
-
+									selected_loops_satisfaction_degrees[i] = all_loops_satisfaction_degrees[i]
 								# UPDATE LOOPER AUDIOTRACKS
 								if bar_num+2 < len(self.signal_subdivided_samples):
 									loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+2])] = loops[i]
@@ -190,9 +192,8 @@ class AutonomousLooperOffline():
 
 			else:
 				
-				updated = False
-				# BASIC OPERATIONAL MODE
 				# CHECK RULES AND COMPUTE LOOP SATISFACTION DEGREES
+				updated = False
 				all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
 				all_loops_rules_satisfied = [False for _ in range(self.N_LOOPS)]
 				for i in range(len(loops)):
@@ -207,11 +208,10 @@ class AutonomousLooperOffline():
 					print(f'Loop track L_{i+1}')
 					print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
 
-
 				# CHECK LOOP UPDATES
 				all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
-				all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
-				for i in range(len(loops)):
+				loops_sorted_by_satisfaction_degree = np.argsort(np.array(all_loops_satisfaction_degrees)).tolist()
+				for i in range(len(loops_sorted_by_satisfaction_degree)):
 					# CHECK IF LOOP SHOULD BE UPDATED
 					if all_loops_rules_satisfied[i]:
 						if bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
@@ -237,8 +237,8 @@ class AutonomousLooperOffline():
 									updated = True
 									break
 
+				# CHECK IF LOOP SHOULD BE DROPPED
 				for i in range(len(loops)):
-					# CHECK IF LOOP SHOULD BE DROPPED
 					if bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
 						print('')
 						print(f'Decision Z_{i+1} ---> Clearing loop {i+1} audio buffer')
@@ -249,7 +249,6 @@ class AutonomousLooperOffline():
 						updated = True
 					else: 
 						bars_loop_persisted[i] += 1
-
 				if not updated:
 					print('')
 					print(f'Decision R ---> No updates')
@@ -441,22 +440,6 @@ class AutonomousLooperOffline():
 
 		satisfaction_degree /= len(looping_rules)
 		return rules_satisfied, satisfaction_degree
-
-	'''
-	def evaluateStartupRepetitionCriteria(self, looping_rules, previous_metrics, comparison_metrics):
-
-		rules_satisfied = []
-		for rule in looping_rules:
-			for i in range(len(self.RULE_NAMES)):
-				if rule["rule-name"] == self.RULE_NAMES[i]:
-					metrics_values = [metrics_bar[i] for metrics_bar in previous_metrics]
-					if all(value > self.STARTUP_SIMILARITY_THR for value in metrics_values):
-						rules_satisfied.append(True)
-					else: 
-						rules_satisfied.append(False)
-
-		return rules_satisfied
-	'''
 
 
 	def compareSequenceWithLoops(self, bar, loops, sr, rhythm_subdivisions):

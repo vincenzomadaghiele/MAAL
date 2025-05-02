@@ -61,7 +61,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>rhythm_subdivision</b>: <i>int</i> | Quantization of a loop for rhythm analysis. | any |
 | <b>startup-mode</b>: <i>string</i> | Mode for selection of first loop. | <i>repetition</i> or <i>user-set</i> |
 | <b>startup-repetition-numBars</b>: <i>int</i> | Number of consecutive repetitions at for <i>repetition</i> startup mode. | any |
-| <b>startup-similarityThreshold</b>: <i>float</i> | Similarity threshold for for <i>repetition</i> startup mode. | [0,1] |
+| <b>startup-similarityThreshold</b>: <i>float</i> | Similarity threshold for <i>repetition</i> startup mode. | [0,1] |
 | <b>startup-firstLoopBar</b>: <i>int</i> | Number of first loop to be selected in <i>user-set</i> startup mode. | any |
 | <b>minLoopsRepetition</b>: <i>int</i> | Minimum number of repetitions for a loop before it can be dropped. | any |
 | <b>maxLoopsRepetition</b>: <i>int</i> | Maximum number of repetitions for a loop after which it is dropped. | any |
