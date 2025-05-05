@@ -262,6 +262,7 @@ class AutonomousLooperOnline():
 					self.previous_descriptors.append(newdescriptors)
 					del self.previous_descriptors[0] # remove firts element of bar list (make circular buffer)
 			else:
+
 				# BASIC OPERATIONAL MODE
 				all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
 				all_loops_rules_satisfied = [False for _ in range(self.N_LOOPS)]
@@ -276,6 +277,7 @@ class AutonomousLooperOnline():
 					all_loops_rules_satisfied[i] = all(rules_satisfied)
 					print(f'Loop {i+1}')
 					print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
+				
 				# UPDATE LOOPS
 				all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
 				all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
@@ -304,6 +306,7 @@ class AutonomousLooperOnline():
 									self.active_loops[i] = True
 									self.selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 									break
+				
 				# CHECK IF LOOP SHOULD BE DROPPED
 				for i in range(self.N_LOOPS):
 					if self.bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
@@ -313,6 +316,7 @@ class AutonomousLooperOnline():
 						self.active_loops[i] = False
 					else: 
 						self.bars_loop_persisted[i] += 1
+			
 			self.BARS_COUNT += 1
 
 	def evaluateLoopingRules(self, looping_rules, comparison_metrics):

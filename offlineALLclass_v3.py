@@ -154,33 +154,11 @@ class AutonomousLooperOffline():
 					candidate_segment = np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
 					num_repetitions = int(self.BEATS_PER_LOOP / n)
 					for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))):
-						#print(k)
 						candidate_segment[k*segment_length_samples:(k+1)*segment_length_samples] = segment
-						#plt.plot(candidate_segment)
-						#plt.title(n)
-						#plt.show()
 					candidate_segments.append(candidate_segment)
 			
 			bar = candidate_segments[-1].copy()
 			bar_mean_loudness = librosa.feature.rms(y=bar)[0].mean() # mean loudness of bar
-
-			'''
-			# extract current bar
-			bar = self.signal[int(self.signal_subdivided_samples[bar_num-1]):int(self.signal_subdivided_samples[bar_num])]
-			bar_mean_loudness = librosa.feature.rms(y=bar)[0].mean() # mean loudness of bar
-			# predict next bar
-
-			# Compute candidate segments combinations
-			candidate_segments = []
-			candidate_segments.append(bar)
-			for n in range(self.MIN_BEATS_PER_LOOP, self.BEATS_PER_LOOP, self.MIN_BEATS_PER_LOOP):
-				if self.BEATS_PER_LOOP % n == 0:
-					segment_to_repeat = bar[-1*int(bar.shape[0]/n):]
-					candidate_segment = np.zeros_like(bar)
-					for k in range(n):
-						candidate_segment[k*int(bar.shape[0]/n):(k+1)*int(bar.shape[0]/n)] = segment_to_repeat
-					candidate_segments.append(candidate_segment)
-			'''
 
 			if not any(active_loops):
 				# STARTUP CONDITIONS
@@ -216,6 +194,7 @@ class AutonomousLooperOffline():
 									bars_loop_persisted[i] = 0
 									active_loops[i] = True
 									selected_loops_satisfaction_degrees[i] = all_loops_satisfaction_degrees[i]
+								
 								# UPDATE LOOPER AUDIOTRACKS
 								if bar_num+1 < len(self.signal_subdivided_samples) - (self.BEATS_PER_LOOP / self.min_loop_division):
 									loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+1])+(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)] = loops[i]
