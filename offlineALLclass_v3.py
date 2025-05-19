@@ -6,6 +6,7 @@ import glob
 import imageio
 import colorsys
 
+import pandas as pd
 import numpy as np
 import numpy.lib.recfunctions
 import matplotlib.pyplot as plt
@@ -722,17 +723,31 @@ class AutonomousLooperOffline():
 	    return flatness
 
 	def computeCentroid(self, bar, sr, plotflag=False):
-	    centroid = librosa.feature.spectral_centroid(y=bar, sr=sr)
-	    #centroid, _, _ = librosa.pyin(bar, sr=sr, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
-	    # plot centroid
-	    if plotflag:
-	        fig, ax = plt.subplots(figsize=(5, 1))
-	        ax.plot(centroid[0], color='b')
-	        fig.suptitle('Continuous spectral centroid')
-	        ax.set_xlabel('Frames')
-	        ax.set_ylabel('Centroid')
-	        plt.show()
-	    return centroid
+		#f0, _, _ = librosa.pyin(bar, sr=sr, 
+		#						fmin=librosa.note_to_hz('C2'), 
+		#						fmax=librosa.note_to_hz('C7'))
+
+		# forward fill nan
+		#mask = np.isnan(f0)
+		#idx = np.where(~mask,np.arange(mask.shape[0]),0)
+		#np.maximum.accumulate(idx, axis=0, out=idx)
+		#f0[mask] = f0[idx[mask]]
+		#f0 = np.nan_to_num(f0)
+		#f0 = f0.reshape(-1,1)
+
+		# computing f0 is too expensive, it is substituted with centroid here
+		# as an approxiamtion, however pitch is computed in the live version of the system
+
+		centroid = librosa.feature.spectral_centroid(y=bar, sr=sr)
+		# plot centroid
+		if plotflag:
+			fig, ax = plt.subplots(figsize=(5, 1))
+			ax.plot(centroid[0], color='b')
+			fig.suptitle('Continuous spectral centroid')
+			ax.set_xlabel('Frames')
+			ax.set_ylabel('Centroid')
+			plt.show()
+		return centroid
 
 	def computeAmplitude(self, bar, sr, plotflag=False):
 	    amplitude = librosa.feature.rms(y=bar)

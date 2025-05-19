@@ -90,6 +90,7 @@ class AutonomousLooperOnline():
 		self.N_MELBANDS = 40
 		self.N_SPECTRALSHAPE = 7
 		self.N_LOUDNESS = 2
+		self.N_PITCH = 2
 		self.N_ONSET = 1
 
 		# INITIALIZE FEATURE VECTORS
@@ -98,6 +99,7 @@ class AutonomousLooperOnline():
 		self.melbands_loops = np.zeros((self.N_LOOPS, self.N_MELBANDS, self.N_FFT_FRAMES))
 		self.spectralshape_loops = np.zeros((self.N_LOOPS, self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
 		self.loudness_loops = np.zeros((self.N_LOOPS, self.N_LOUDNESS, self.N_FFT_FRAMES))
+		self.pitch_loops = np.zeros((self.N_LOOPS, self.N_PITCH, self.N_FFT_FRAMES))
 		self.onsets_loops = [[] for _ in range(self.N_LOOPS)]
 		self.binaryRhythms_loops = [[] for _ in range(self.N_LOOPS)]
 		# sequence feature vectors
@@ -105,11 +107,12 @@ class AutonomousLooperOnline():
 		self.melbands_sequence = np.zeros((self.N_MELBANDS, self.N_FFT_FRAMES))
 		self.spectralshape_sequence = np.zeros((self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
 		self.loudness_sequence = np.zeros((self.N_LOUDNESS, self.N_FFT_FRAMES))
+		self.pitch_sequence = np.zeros((self.N_PITCH, self.N_FFT_FRAMES))
 		self.onsets_sequence = []
 		self.binaryRhythms_sequence = []
 
 		# checking features received
-		self.N_FEATURES = self.N_CHROMA + self.N_MELBANDS + self.N_SPECTRALSHAPE + self.N_LOUDNESS + self.N_ONSET
+		self.N_FEATURES = self.N_CHROMA + self.N_MELBANDS + self.N_SPECTRALSHAPE + self.N_LOUDNESS + self.N_ONSET + self.N_PITCH
 		self.EXPECTED_NUM_FEATURES = self.N_FEATURES * (self.N_LOOPS + 1)
 		self.featuresInCounter = 0
 
@@ -187,6 +190,9 @@ class AutonomousLooperOnline():
 			elif feature_name == 'loudness':
 				self.loudness_sequence[feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
 				self.featuresInCounter += 1
+			elif feature_name == 'pitch':
+				self.pitch_sequence[feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
+				self.featuresInCounter += 1
 			elif feature_name == 'onsets':
 				self.onsets = np.abs(np.array(args))
 				self.binaryRhythms_sequence = self.getBinaryRhythm(self.onsets)
@@ -217,6 +223,9 @@ class AutonomousLooperOnline():
 				self.featuresInCounter += 1
 			elif feature_name == 'loudness':
 				self.loudness_loops[loop_num, feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
+				self.featuresInCounter += 1
+			elif feature_name == 'pitch':
+				self.pitch_loops[loop_num, feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
 				self.featuresInCounter += 1
 			elif feature_name == 'onsets':
 				self.onsets = np.abs(np.array(args))
@@ -432,7 +441,8 @@ class AutonomousLooperOnline():
 		discretechroma_seq = np.array([chroma_seq[:,j] for j in onsets_seq])
 		loudness_seq = self.loudness_sequence[0,:]
 		discreteloudness_seq = np.array([loudness_seq[j] for j in onsets_seq])
-		centroid_seq = self.spectralshape_sequence[0,:]
+		#centroid_seq = self.spectralshape_sequence[0,:]
+		centroid_seq = self.pitch_sequence[0,:]
 		discretecentroid_seq = np.array([centroid_seq[j] for j in onsets_seq])
 		flatness_seq = self.spectralshape_sequence[5,:]
 		discreteflatness_seq = np.array([flatness_seq[j] for j in onsets_seq])
@@ -537,7 +547,8 @@ class AutonomousLooperOnline():
 		discretechroma_sum = np.array([chroma_sum[:,j] for j in onsets_sum])
 		loudness_sum = self.loudness_loops[loopNumber,0,:]
 		discreteloudness_sum = np.array([loudness_sum[j] for j in onsets_sum])
-		centroid_sum = self.spectralshape_loops[loopNumber,0,:]
+		#centroid_sum = self.spectralshape_loops[loopNumber,0,:]
+		centroid_sum = self.pitch_loops[loopNumber,0,:]
 		discretecentroid_sum = np.array([centroid_sum[j] for j in onsets_sum])
 		flatness_sum = self.spectralshape_loops[loopNumber,5,:]
 		discreteflatness_sum = np.array([flatness_sum[j] for j in onsets_sum])

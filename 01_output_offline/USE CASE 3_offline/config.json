@@ -1,6 +1,7 @@
 {
     "tempo": 80,
-    "beats_per_loop": 4,
+    "beats_per_loop": 8,
+    "min_loop_beats": 2,
     "rhythm_subdivision": 16,
     "looping-rules": [
         [
