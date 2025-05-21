@@ -61,7 +61,8 @@ class AutonomousLooperOffline():
 							"Dynamic similarity", "Dynamic changes - C", "Dynamic changes - D",
 							"Timbral similarity", "Timbral evolution - C", "Timbral evolution - D",
 							"Global spectral overlap", "Frequency range overlap",
-							"Rhythmic similarity", "Rhythmic density"]
+							"Rhythmic similarity", "Rhythmic density",
+							"Harmonic function similarity", "Harmonic function transitions - C", "Harmonic function transitions - D"]
 
 		# CONFIGURE LOOP STATION WITH OPTIONS
 		self.PLOT_FLAG = plotFlag
@@ -525,6 +526,14 @@ class AutonomousLooperOffline():
 		_, chroma_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[6], 
 																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[6])
 
+		## TONNETZ
+		if self.verbose >= 1:
+			print('Chroma:')
+		tonnetz_AE = self.computeTwodimensionalAE(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
+		_, tonnetz_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
+		_, tonnetz_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[14], 
+																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[14])
+
 		## LOUDNESS
 		if self.verbose >= 1:
 			print('Loudness:')
@@ -533,9 +542,9 @@ class AutonomousLooperOffline():
 		_, loudness_discrete_correlation = self.computeDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[8], 
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[8])
 
-		## CENTROID
+		## PITCH
 		if self.verbose >= 1:
-			print('Spectral centroid:')
+			print('Pitch:')
 		centroid_MSE = self.computeSignalsMSE(bar_sequence_descriptors[9], sumOfLoops_sequence_descriptors[9])
 		_, centroid_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[9], sumOfLoops_sequence_descriptors[9])
 		_, centroid_discrete_correlation = self.computeDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[10], 
@@ -557,7 +566,8 @@ class AutonomousLooperOffline():
 							loudness_MSE, loudness_continuous_correlation/2+0.5, loudness_discrete_correlation/2+0.5,
 							flatness_MSE, flatness_continuous_correlation/2+0.5, flatness_discrete_correlation/2+0.5,
 							spectral_energy_difference_coefficient, spectral_energy_overlap_coefficient,
-							binary_comparison_coefficient, rhythm_density_coefficient]
+							binary_comparison_coefficient, rhythm_density_coefficient,
+							tonnetz_AE, tonnetz_continuous_correlation, tonnetz_discrete_correlation]
 
 		return comparison_metrics
 
@@ -569,6 +579,8 @@ class AutonomousLooperOffline():
 		CQT_bar, CQT_center_of_mass_bar, CQT_var_bar = self.computeCQT(bar, sr, plotflag=self.PLOT_FLAG)
 		chroma_bar = self.computeChroma(bar, sr, plotflag=self.PLOT_FLAG)
 		discretechroma_bar = self.computeDiscreteChroma(chroma_bar, onsets, sr, plotflag=self.PLOT_FLAG)
+		tonnetz_bar = self.computeTonnetz(bar, sr, plotflag=self.PLOT_FLAG)
+		discretetonnetz_bar = self.computeDiscreteChroma(tonnetz_bar, onsets, sr, plotflag=self.PLOT_FLAG)
 		loudness_bar = self.computeAmplitude(bar, sr, plotflag=self.PLOT_FLAG)
 		discreteloudness_bar = self.computeDiscreteFeature(loudness_bar.reshape(1,-1), onsets, sr, plotflag=self.PLOT_FLAG)
 		discreteloudness_bar = discreteloudness_bar.reshape(-1)
@@ -584,7 +596,8 @@ class AutonomousLooperOffline():
 								chroma_bar, discretechroma_bar,
 								loudness_bar, discreteloudness_bar,
 								centroid_bar, discretecentroid_bar,
-								flatness_bar, discreteflatness_bar]
+								flatness_bar, discreteflatness_bar,
+								tonnetz_bar, discretetonnetz_bar]
 
 		return sequence_descriptors
 
@@ -669,6 +682,17 @@ class AutonomousLooperOffline():
 	        ax.set_xlabel('Frames')
 	        plt.show()
 	    return chroma
+
+	def computeTonnetz(self, bar, sr, plotflag=False):
+		tonnetz = librosa.feature.tonnetz(y=bar, sr=sr)
+		# plot tonnetz
+		if plotflag:
+			fig, ax = plt.subplots(1, figsize=(5, 1))
+			img1 = librosa.display.specshow(tonnetz, y_axis='tonnetz', x_axis='time')
+			ax.set(title='Tonal Centroids (Tonnetz)')
+			ax.label_outer()
+			plt.show()
+		return tonnetz
 
 	def computeDiscreteChroma(self, chroma, onsets, sr, plotflag=False):
 		chroma_at_peaks = [chroma[:,i] for i in onsets]

@@ -1,6 +1,7 @@
 import json
 import os
 import threading
+import librosa
 import numpy as np
 import numpy.lib.recfunctions
 from pythonosc.dispatcher import Dispatcher
@@ -63,7 +64,8 @@ class AutonomousLooperOnline():
 							"Dynamic similarity", "Dynamic changes - C", "Dynamic changes - D",
 							"Timbral similarity", "Timbral evolution - C", "Timbral evolution - D",
 							"Global spectral overlap", "Frequency range overlap",
-							"Rhythmic similarity", "Rhythmic density"]
+							"Rhythmic similarity", "Rhythmic density",
+							"Harmonic function similarity", "Harmonic function transitions - C", "Harmonic function transitions - D"]
 
 		self.N_LOOPS = len(self.looping_rules)
 
@@ -92,10 +94,12 @@ class AutonomousLooperOnline():
 		self.N_LOUDNESS = 2
 		self.N_PITCH = 2
 		self.N_ONSET = 1
+		self.N_TONNETZ = 6 # COMPUTED IN PYTHON
 
 		# INITIALIZE FEATURE VECTORS
 		# sum of all other loops vector
 		self.chroma_loops = np.zeros((self.N_LOOPS, self.N_CHROMA, self.N_FFT_FRAMES))
+		self.tonnetz_loops = np.zeros((self.N_LOOPS, self.N_TONNETZ, self.N_FFT_FRAMES))
 		self.melbands_loops = np.zeros((self.N_LOOPS, self.N_MELBANDS, self.N_FFT_FRAMES))
 		self.spectralshape_loops = np.zeros((self.N_LOOPS, self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
 		self.loudness_loops = np.zeros((self.N_LOOPS, self.N_LOUDNESS, self.N_FFT_FRAMES))
@@ -104,6 +108,7 @@ class AutonomousLooperOnline():
 		self.binaryRhythms_loops = [[] for _ in range(self.N_LOOPS)]
 		# sequence feature vectors
 		self.chroma_sequence = np.zeros((self.N_CHROMA, self.N_FFT_FRAMES))
+		self.tonnetz_sequence = np.zeros((self.N_TONNETZ, self.N_FFT_FRAMES))
 		self.melbands_sequence = np.zeros((self.N_MELBANDS, self.N_FFT_FRAMES))
 		self.spectralshape_sequence = np.zeros((self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
 		self.loudness_sequence = np.zeros((self.N_LOUDNESS, self.N_FFT_FRAMES))
@@ -157,8 +162,6 @@ class AutonomousLooperOnline():
 		# define server
 		self.server = BlockingOSCUDPServer((self.ip, self.port_rcv), dispatcher)
 		self.server.serve_forever()  # Blocks forever
-
-
 
 	def launchPD(self, UBUNTU):
 		if not UBUNTU:
@@ -252,6 +255,12 @@ class AutonomousLooperOnline():
 			print(f'SEGMENT {self.BARS_COUNT}')
 			print('-'*50)
 
+			# compute tonnetz from chroma
+			self.tonnetz_sequence = librosa.feature.tonnetz(chroma=self.chroma_sequence, sr=self.sr)
+			for i in range(self.N_LOOPS):
+				self.tonnetz_loops[i,:,:] = librosa.feature.tonnetz(chroma=self.chroma_loops[i,:,:], sr=self.sr)
+
+			# compute bar loudness
 			bar_mean_loudness = self.loudness_sequence[0, :].mean() # mean loudness of bar
 			if not any(self.active_loops):
 				# INITIAL OPERATIONAL MODE
@@ -439,6 +448,8 @@ class AutonomousLooperOnline():
 		CQT_var_seq = np.std([CQT_mean[i]*i for i in range(CQT_mean.shape[0])])
 		chroma_seq = self.chroma_sequence[:,:]
 		discretechroma_seq = np.array([chroma_seq[:,j] for j in onsets_seq])
+		tonnetz_seq = self.tonnetz_sequence[:,:]
+		discretetonnetz_seq = np.array([tonnetz_seq[:,j] for j in onsets_seq])
 		loudness_seq = self.loudness_sequence[0,:]
 		discreteloudness_seq = np.array([loudness_seq[j] for j in onsets_seq])
 		#centroid_seq = self.spectralshape_sequence[0,:]
@@ -452,7 +463,8 @@ class AutonomousLooperOnline():
 									chroma_seq, discretechroma_seq,
 									loudness_seq.reshape(1,-1), discreteloudness_seq,
 									centroid_seq.reshape(1,-1), discretecentroid_seq,
-									flatness_seq.reshape(1,-1), discreteflatness_seq]
+									flatness_seq.reshape(1,-1), discreteflatness_seq,
+									tonnetz_seq, discretetonnetz_seq]
 		
 		return bar_sequence_descriptors
 
@@ -485,6 +497,15 @@ class AutonomousLooperOnline():
 			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
 		chroma_seq = candidate_segment.copy()
 		discretechroma_seq = np.array([chroma_seq[:,j] for j in onsets_seq])
+
+		# tonnetz
+		candidate_segment = np.zeros((self.N_TONNETZ, self.N_FFT_FRAMES))
+		segment = self.tonnetz_sequence[:,-segment_length_frames:]
+		#num_repetitions = int(self.BEATS_PER_LOOP / n)
+		for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))+1):
+			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
+		tonnetz_seq = candidate_segment.copy()
+		discretetonnetz_seq = np.array([tonnetz_seq[:,j] for j in onsets_seq])
 		
 		# loudness
 		candidate_segment = np.zeros((self.N_LOUDNESS, self.N_FFT_FRAMES))
@@ -514,7 +535,8 @@ class AutonomousLooperOnline():
 									chroma_seq, discretechroma_seq,
 									loudness_seq.reshape(1,-1), discreteloudness_seq,
 									centroid_seq.reshape(1,-1), discretecentroid_seq,
-									flatness_seq.reshape(1,-1), discreteflatness_seq]
+									flatness_seq.reshape(1,-1), discreteflatness_seq,
+									tonnetz_seq, discretetonnetz_seq]
 		
 		return bar_sequence_descriptors
 
@@ -545,6 +567,8 @@ class AutonomousLooperOnline():
 		CQT_var_sum = np.std([CQT_mean[i]*i for i in range(CQT_mean.shape[0])])
 		chroma_sum = self.chroma_loops[loopNumber,:,:]
 		discretechroma_sum = np.array([chroma_sum[:,j] for j in onsets_sum])
+		tonnetz_sum = self.tonnetz_loops[loopNumber,:,:]
+		discretetonnetz_sum = np.array([tonnetz_sum[:,j] for j in onsets_sum])
 		loudness_sum = self.loudness_loops[loopNumber,0,:]
 		discreteloudness_sum = np.array([loudness_sum[j] for j in onsets_sum])
 		#centroid_sum = self.spectralshape_loops[loopNumber,0,:]
@@ -558,7 +582,8 @@ class AutonomousLooperOnline():
 											chroma_sum, discretechroma_sum,
 											loudness_sum.reshape(1,-1), discreteloudness_sum,
 											centroid_sum.reshape(1,-1), discretecentroid_sum,
-											flatness_sum.reshape(1,-1), discreteflatness_sum]
+											flatness_sum.reshape(1,-1), discreteflatness_sum,
+											tonnetz_sum, discretetonnetz_sum]
 
 		return sumOfLoops_sequence_descriptors
 
@@ -582,6 +607,14 @@ class AutonomousLooperOnline():
 		_, chroma_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[5], sumOfLoops_sequence_descriptors[5])
 		_, chroma_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[6], 
 																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[6])
+
+		## TONNETZ
+		if self.verbose == 2:
+			print('Tonnetz:')
+		tonnetz_AE = self.computeTwodimensionalAE(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
+		_, tonnetz_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
+		_, tonnetz_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[14], 
+																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[14])
 
 		## LOUDNESS
 		if self.verbose == 2:
