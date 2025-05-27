@@ -121,6 +121,7 @@ class AutonomousLooperOffline():
 
 		# SET UTILS FOR ITERATION
 		# global variables
+		decisions_log = []
 		loops_bars = [[] for _ in range(self.N_LOOPS)]
 		loops_candidate_num = [[] for _ in range(self.N_LOOPS)]
 		loops_audiotracks = np.zeros((self.N_LOOPS, self.signal.shape[0]))
@@ -141,6 +142,11 @@ class AutonomousLooperOffline():
 			print('')
 			print(f'Segment {bar_num}')
 			print('-' * 40)
+
+			# update log
+			decisions_bar = {}
+			decisions_bar['subdivision_index (m)'] = bar_num
+			decisions_bar['decisions'] = []
 
 			candidate_segments = []
 			for n in self.candidate_segments_divisions:
@@ -166,6 +172,7 @@ class AutonomousLooperOffline():
 				# STARTUP CONDITIONS
 				if self.STARTUP_MODE == "repetition":
 
+					updated = False
 					# check that the bar is not completely silent
 					if bar_mean_loudness > silence_threshold:
 						# compare descriptors of current bar with previous bar
@@ -196,6 +203,14 @@ class AutonomousLooperOffline():
 									bars_loop_persisted[i] = 0
 									active_loops[i] = True
 									selected_loops_satisfaction_degrees[i] = all_loops_satisfaction_degrees[i]
+									updated = True
+
+									# update log
+									decisions_element = {}
+									decisions_element['decision_type'] = 'I'
+									decisions_element['loop_track (i)'] = i
+									decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[-1]
+									decisions_bar['decisions'].append(decisions_element)
 								
 								# UPDATE LOOPER AUDIOTRACKS
 								if bar_num+1 < len(self.signal_subdivided_samples) - (self.BEATS_PER_LOOP / self.min_loop_division):
@@ -203,25 +218,56 @@ class AutonomousLooperOffline():
 
 						previous_bars.append(bar)
 						del previous_bars[0] # remove firts element of bar list (make circular buffer)
+					
+					if not updated:
+						print('')
+						print(f'Decision R ---> No updates')
+
+						# update log
+						decisions_element = {}
+						decisions_element['decision_type'] = 'R'
+						decisions_element['loop_track (i)'] = None
+						decisions_element['num_beats (T_l)'] = None
+						decisions_bar['decisions'].append(decisions_element)
 				
 				elif self.STARTUP_MODE == "user-set":
-
+					
+					updated = False
 					user_set_bar_count += 1
 					# START AFTER USER-SET NUMBER OF LOOP BEATS
 					if user_set_bar_count == self.STARTUP_LOOP_BAR_N:
 						# place user-set loop in bar
 						loops[0] = self.crown_window * bar
 						loops_bars[0].append(bar_num)
-						loops_candidate_num[i].append(0) # index of candidate in candidates array
+						loops_candidate_num[0].append(0) # index of candidate in candidates array
 						bars_loop_persisted[0] = 0
 						active_loops[0] = True
 						user_set_bar_count = 0
+						updated = True
 						print('')
 						print(f'Decision I_{i+1} ---> Segment selected for loop {i+1}')
+
+						# update log
+						decisions_element = {}
+						decisions_element['decision_type'] = 'I'
+						decisions_element['loop_track (i)'] = 0
+						decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[-1]
+						decisions_bar['decisions'].append(decisions_element)
 
 						# UPDATE LOOPER AUDIOTRACKS
 						if bar_num+1 < len(self.signal_subdivided_samples) - (self.BEATS_PER_LOOP / self.min_loop_division):
 							loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+1])+(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)] = loops[i]
+
+					if not updated:
+						print('')
+						print(f'Decision R ---> No updates')
+
+						# update log
+						decisions_element = {}
+						decisions_element['decision_type'] = 'R'
+						decisions_element['loop_track (i)'] = None
+						decisions_element['num_beats (T_l)'] = None
+						decisions_bar['decisions'].append(decisions_element)
 
 			else:
 				
@@ -239,6 +285,7 @@ class AutonomousLooperOffline():
 					candidates_satisfaction_degrees = []
 					# compute rules for each candidate segment
 					for segment in candidate_segments:
+
 						# COMPUTE COMPARISON METRICS
 						comparison_metrics = self.compareSequenceWithLoops(segment, loops_without_this, self.sr, self.RHYTHM_SUBDIVISIONS)
 						# EVALUATE LOOPING RULES
@@ -278,6 +325,14 @@ class AutonomousLooperOffline():
 								active_loops[i] = True
 								selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 								updated = True
+
+								# update log
+								decisions_element = {}
+								decisions_element['decision_type'] = 'A'
+								decisions_element['loop_track (i)'] = i
+								decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[selected_candidate_nums[i]]
+								decisions_bar['decisions'].append(decisions_element)
+
 								break
 							elif self.LOOP_CHANGE_RULE == "better":
 								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
@@ -290,6 +345,14 @@ class AutonomousLooperOffline():
 									active_loops[i] = True
 									selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 									updated = True
+
+									# update log
+									decisions_element = {}
+									decisions_element['decision_type'] = 'A'
+									decisions_element['loop_track (i)'] = i
+									decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[selected_candidate_nums[i]]
+									decisions_bar['decisions'].append(decisions_element)
+
 									break
 
 				# CHECK IF LOOP SHOULD BE DROPPED
@@ -302,17 +365,35 @@ class AutonomousLooperOffline():
 						selected_loops_satisfaction_degrees[i] = 0
 						active_loops[i] = False
 						updated = True
+						# save dropped to dict
+
+						# update log
+						decisions_element = {}
+						decisions_element['decision_type'] = 'Z'
+						decisions_element['loop_track (i)'] = i
+						decisions_element['num_beats (T_l)'] = None
+						decisions_bar['decisions'].append(decisions_element)
+
 					else: 
 						bars_loop_persisted[i] += 1
 				if not updated:
 					print('')
 					print(f'Decision R ---> No updates')
 
+					# update log
+					decisions_element = {}
+					decisions_element['decision_type'] = 'R'
+					decisions_element['loop_track (i)'] = None
+					decisions_element['num_beats (T_l)'] = None
+					decisions_bar['decisions'].append(decisions_element)
+
+
 				# UPDATE LOOPER AUDIOTRACKS
 				for i in range(len(loops)):
 					if bar_num+1 < len(self.signal_subdivided_samples) - (self.BEATS_PER_LOOP / self.min_loop_division):
 						loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+1])+(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)] = loops[i]
 
+			decisions_log.append(decisions_bar)
 
 
 		# SAVE TO DISK
@@ -321,6 +402,10 @@ class AutonomousLooperOffline():
 		if os.path.isdir(output_dir):
 			shutil.rmtree(output_dir)
 		os.mkdir(output_dir)
+
+
+		with open(f'{output_dir}/decisions_log.json', 'w', encoding='utf-8') as f:
+			json.dump(decisions_log, f, ensure_ascii=False, indent=4)
 
 		# SAVE SOUND FILES TO DISK
 		all_loops = loops_audiotracks.sum(axis=0) #/ self.N_LOOPS
