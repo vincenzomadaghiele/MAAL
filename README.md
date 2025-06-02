@@ -31,6 +31,17 @@ The `zexy` library for PD is used for OSC communication between python and PD, i
 The `iem_tab` library for PD is used for buffer operations in PD, it can be installed by typing `iem_tab` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
 
 
+The `else` library for PD is used for GUI objects in PD, it can be installed by typing `else` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
+
+
+## Quick start
+Just play live with the looper without messing around with custom settings! 
+Just run:
+```
+python3 onlineALL.py
+```
+This will use the default `config.json` file in this repo.
+
 
 ## Offline ALL
 
