@@ -1,6 +1,7 @@
 '''
 This file is part of Autonomous Live Looper (ALL).
-Autonomous Live Looper (ALL) is a co-creative sampler and looper based on a multi-agent logic algorithm and machine listening. 
+Autonomous Live Looper (ALL) is a co-creative sampler and looper 
+based on a multi-agent logic algorithm and machine listening. 
 
 The ALL can be obtained at http://stefanofasciani.com/dgmd.html
 DGMD Copyright (C) 2025 Vincenzo Madaghiele, Stefano Fasciani, Tejaswinee Kelkar, Çagri Erdem, University of Oslo
@@ -20,7 +21,8 @@ If not, see <http://www.gnu.org/licenses/>.
 If you use the DGMD or any part of it in any system or publication, please acknowledge 
 its authors by adding a reference to this publications:
 
-V. Madaghiele, S. Fasciani, T. Kelkar, Ç. Erdem. "ALL: Autonomous Live Looper for improvised co-creation of musical structures"
+V. Madaghiele, S. Fasciani, T. Kelkar, Ç. Erdem. 
+"ALL: Autonomous Live Looper for improvised co-creation of musical structures"
 In Proceedings of AI and Music Creativity Conference (AIMC) 2025, 10-12 September 2025, Bruxelles (BE).
 '''
 
