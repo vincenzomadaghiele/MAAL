@@ -1,0 +1,68 @@
+{
+    "tempo": 105,
+    "beats_per_loop": 4,
+    "min_loop_beats": 4,
+    "rhythm_subdivision": 32,
+    "looping-rules": [
+        [
+            {
+                "rule-name": "Timbral similarity",
+                "rule-type": "more",
+                "rule-threshold": 0.001
+            },
+            {
+                "rule-name": "Rhythmic similarity",
+                "rule-type": "less",
+                "rule-threshold": 0.8
+            }
+        ],
+        [
+            {
+                "rule-name": "Timbral similarity",
+                "rule-type": "more",
+                "rule-threshold": 0.001
+            },
+            {
+                "rule-name": "Rhythmic similarity",
+                "rule-type": "less",
+                "rule-threshold": 0.7
+            }
+        ],
+        [
+            {
+                "rule-name": "Timbral similarity",
+                "rule-type": "more",
+                "rule-threshold": 0.001
+            },
+            {
+                "rule-name": "Rhythmic similarity",
+                "rule-type": "less",
+                "rule-threshold": 0.8
+            }
+        ],
+        [
+            {
+                "rule-name": "Dynamic similarity",
+                "rule-type": "more",
+                "rule-threshold": 0.05
+            },
+            {
+                "rule-name": "Rhythmic density",
+                "rule-type": "more",
+                "rule-threshold": 0.05
+            },
+            {
+                "rule-name": "Rhythmic similarity",
+                "rule-type": "less",
+                "rule-threshold": 0.8
+            }
+        ]
+    ],
+    "startup-mode": "repetition",
+    "startup-repetition-numBars": 2,
+    "startup-similarityThreshold": 0.001,
+    "startup-firstLoopBar": 4,
+    "minLoopsRepetition": 4,
+    "maxLoopsRepetition": 20,
+    "loopChange-rule": "better"
+}

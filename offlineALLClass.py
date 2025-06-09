@@ -441,8 +441,8 @@ class AutonomousLooperOffline():
 		os.mkdir(output_dir)
 
 
-		with open(f'{output_dir}/decisions_log.json', 'w', encoding='utf-8') as f:
-			json.dump(decisions_log, f, ensure_ascii=False, indent=4)
+		#with open(f'{output_dir}/decisions_log.json', 'w', encoding='utf-8') as f:
+		#	json.dump(decisions_log, f, ensure_ascii=False, indent=4)
 
 		# SAVE SOUND FILES TO DISK
 		all_loops = loops_audiotracks.sum(axis=0) #/ self.N_LOOPS
