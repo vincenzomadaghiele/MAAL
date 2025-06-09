@@ -1,11 +1,40 @@
+'''
+This file is part of Autonomous Live Looper (ALL).
+Autonomous Live Looper (ALL) is a co-creative sampler and looper based on a multi-agent logic algorithm and machine listening. 
+
+The ALL can be obtained at http://stefanofasciani.com/dgmd.html
+DGMD Copyright (C) 2025 Vincenzo Madaghiele, Stefano Fasciani, Tejaswinee Kelkar, Çagri Erdem, University of Oslo
+Inquiries: vincenzo.madaghiele@gmail.com
+
+The ALL is free software: you can redistribute it and/or modify it under the 
+terms of the GNU Lesser General Public License as published by the Free Software 
+Foundation, either version 3 of the License, or (at your option) any later version.
+
+The ALL is distributed as a creative tool for musicians and researcher, WITHOUT ANY WARRANTY; 
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+See the GNU Less General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along with DGMD. 
+If not, see <http://www.gnu.org/licenses/>.
+ 
+If you use the DGMD or any part of it in any system or publication, please acknowledge 
+its authors by adding a reference to this publications:
+
+V. Madaghiele, S. Fasciani, T. Kelkar, Ç. Erdem. "ALL: Autonomous Live Looper for improvised co-creation of musical structures"
+In Proceedings of AI and Music Creativity Conference (AIMC) 2025, 10-12 September 2025, Bruxelles (BE).
+'''
+
+
 import json
 import os
 import threading
+import librosa
 import numpy as np
 import numpy.lib.recfunctions
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
 from pythonosc import udp_client
+import matplotlib.pyplot as plt
 
 # PD executables
 macos_pd_executable = '/Applications/Pd-0.55-2.app/Contents/Resources/bin/pd' # on mac
@@ -50,7 +79,8 @@ class AutonomousLooperOnline():
 		self.N_BARS_STARTUP = config["startup-repetition-numBars"] # only relevant if STARTUP_MODE != "user-set"
 		self.STARTUP_LOOP_BAR_N = config["startup-firstLoopBar"] # first loop set by users
 		self.TEMPO = config["tempo"] # bpm
-		self.BEATS_PER_LOOP = config["beats_per_loop"] # meter
+		self.BEATS_PER_LOOP = config["beats_per_loop"] # T_u
+		self.MIN_BEATS_PER_LOOP = config["min_loop_beats"] # T_l
 		self.RHYTHM_SUBDIVISIONS = config["rhythm_subdivision"] # bar quantization
 		self.verbose = verbose
 
@@ -61,7 +91,8 @@ class AutonomousLooperOnline():
 							"Dynamic similarity", "Dynamic changes - C", "Dynamic changes - D",
 							"Timbral similarity", "Timbral evolution - C", "Timbral evolution - D",
 							"Global spectral overlap", "Frequency range overlap",
-							"Rhythmic similarity", "Rhythmic density"]
+							"Rhythmic similarity", "Rhythmic density",
+							"Harmonic function similarity", "Harmonic function transitions - C", "Harmonic function transitions - D"]
 
 		self.N_LOOPS = len(self.looping_rules)
 
@@ -81,32 +112,39 @@ class AutonomousLooperOnline():
 		self.FFT_HOP_SIZE = fft_hopSize
 		self.N_BAR_SAMPLES = int(1 / (self.TEMPO / 60) * self.sr * self.BEATS_PER_LOOP) # number of samples in a bar: 1 / BPS * framerate * beats_per_bar
 		self.N_FFT_FRAMES = int(self.N_BAR_SAMPLES / self.FFT_HOP_SIZE) + 1
-		
+		self.frames_per_beat = int(self.N_FFT_FRAMES / self.BEATS_PER_LOOP)
+
 		# NON MODIFIABLE DYNAMICALLY
-		N_CHROMA = 12
-		N_MELBANDS = 40
-		N_SPECTRALSHAPE = 7
-		N_LOUDNESS = 2
-		N_ONSET = 1
+		self.N_CHROMA = 12
+		self.N_MELBANDS = 40
+		self.N_SPECTRALSHAPE = 7
+		self.N_LOUDNESS = 2
+		self.N_PITCH = 2
+		self.N_ONSET = 1
+		self.N_TONNETZ = 6 # COMPUTED IN PYTHON
 
 		# INITIALIZE FEATURE VECTORS
 		# sum of all other loops vector
-		self.chroma_loops = np.zeros((self.N_LOOPS, N_CHROMA, self.N_FFT_FRAMES))
-		self.melbands_loops = np.zeros((self.N_LOOPS, N_MELBANDS, self.N_FFT_FRAMES))
-		self.spectralshape_loops = np.zeros((self.N_LOOPS, N_SPECTRALSHAPE, self.N_FFT_FRAMES))
-		self.loudness_loops = np.zeros((self.N_LOOPS, N_LOUDNESS, self.N_FFT_FRAMES))
+		self.chroma_loops = np.zeros((self.N_LOOPS, self.N_CHROMA, self.N_FFT_FRAMES))
+		self.tonnetz_loops = np.zeros((self.N_LOOPS, self.N_TONNETZ, self.N_FFT_FRAMES))
+		self.melbands_loops = np.zeros((self.N_LOOPS, self.N_MELBANDS, self.N_FFT_FRAMES))
+		self.spectralshape_loops = np.zeros((self.N_LOOPS, self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
+		self.loudness_loops = np.zeros((self.N_LOOPS, self.N_LOUDNESS, self.N_FFT_FRAMES))
+		self.pitch_loops = np.zeros((self.N_LOOPS, self.N_PITCH, self.N_FFT_FRAMES))
 		self.onsets_loops = [[] for _ in range(self.N_LOOPS)]
 		self.binaryRhythms_loops = [[] for _ in range(self.N_LOOPS)]
 		# sequence feature vectors
-		self.chroma_sequence = np.zeros((N_CHROMA, self.N_FFT_FRAMES))
-		self.melbands_sequence = np.zeros((N_MELBANDS, self.N_FFT_FRAMES))
-		self.spectralshape_sequence = np.zeros((N_SPECTRALSHAPE, self.N_FFT_FRAMES))
-		self.loudness_sequence = np.zeros((N_LOUDNESS, self.N_FFT_FRAMES))
+		self.chroma_sequence = np.zeros((self.N_CHROMA, self.N_FFT_FRAMES))
+		self.tonnetz_sequence = np.zeros((self.N_TONNETZ, self.N_FFT_FRAMES))
+		self.melbands_sequence = np.zeros((self.N_MELBANDS, self.N_FFT_FRAMES))
+		self.spectralshape_sequence = np.zeros((self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
+		self.loudness_sequence = np.zeros((self.N_LOUDNESS, self.N_FFT_FRAMES))
+		self.pitch_sequence = np.zeros((self.N_PITCH, self.N_FFT_FRAMES))
 		self.onsets_sequence = []
 		self.binaryRhythms_sequence = []
 
 		# checking features received
-		self.N_FEATURES = N_CHROMA + N_MELBANDS + N_SPECTRALSHAPE + N_LOUDNESS + N_ONSET
+		self.N_FEATURES = self.N_CHROMA + self.N_MELBANDS + self.N_SPECTRALSHAPE + self.N_LOUDNESS + self.N_ONSET + self.N_PITCH
 		self.EXPECTED_NUM_FEATURES = self.N_FEATURES * (self.N_LOOPS + 1)
 		self.featuresInCounter = 0
 
@@ -120,6 +158,14 @@ class AutonomousLooperOnline():
 		self.all_descriptors = []
 		self.BARS_COUNT = 0
 		
+		# compute candidate segment divisions
+		self.candidate_segments_divisions = []
+		for n in range(self.MIN_BEATS_PER_LOOP, self.BEATS_PER_LOOP, self.MIN_BEATS_PER_LOOP):
+			if self.BEATS_PER_LOOP % n == 0:
+				self.candidate_segments_divisions.append(n)
+		self.candidate_segments_divisions.append(self.BEATS_PER_LOOP)
+		self.min_loop_division = self.candidate_segments_divisions[0]
+		print(f'Candidate segment divisions: {self.candidate_segments_divisions}')		
 
 		## OSC ADDRESSES
 		# network parameters
@@ -144,11 +190,9 @@ class AutonomousLooperOnline():
 		self.server = BlockingOSCUDPServer((self.ip, self.port_rcv), dispatcher)
 		self.server.serve_forever()  # Blocks forever
 
-
-
 	def launchPD(self, UBUNTU):
 		if not UBUNTU:
-			pd_looper_path = './02_ALL_PD/_main.pd'
+			pd_looper_path = './02_ALL_PD/_main_v2.pd'
 			#command = macos_pd_executable + f' -send "; N_LOOPS {self.N_LOOPS}; BPM {self.TEMPO}; fftsize {self.FFT_WINDOW}; hopsize {self.FFT_HOP_SIZE}; " ' + pd_looper_path
 			command = macos_pd_executable + f' -send "; N_LOOPS {self.N_LOOPS}; BPM {self.TEMPO}; BEATS_PER_LOOP {self.BEATS_PER_LOOP}; PORT_SND {self.port_rcv}; PORT_RCV {self.port_snd}; " ' + pd_looper_path
 			os.system(command)
@@ -176,9 +220,13 @@ class AutonomousLooperOnline():
 			elif feature_name == 'loudness':
 				self.loudness_sequence[feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
 				self.featuresInCounter += 1
+			elif feature_name == 'pitch':
+				self.pitch_sequence[feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
+				self.featuresInCounter += 1
 			elif feature_name == 'onsets':
 				self.onsets = np.abs(np.array(args))
-				# binary rhythm representation
+				self.binaryRhythms_sequence = self.getBinaryRhythm(self.onsets)
+				'''
 				interval_size = int(self.N_BAR_SAMPLES / self.RHYTHM_SUBDIVISIONS)
 				binary_rhythm = []
 				for i in range(0, self.N_BAR_SAMPLES, interval_size):
@@ -191,7 +239,7 @@ class AutonomousLooperOnline():
 					binary_rhythm.append(flag)
 				self.onsets_sequence = (self.onsets / self.FFT_HOP_SIZE).astype(int)
 				self.binaryRhythms_sequence = binary_rhythm
-				#print(binary_rhythm)
+				'''
 				self.featuresInCounter += 1
 		else:
 			if feature_name == 'chroma':
@@ -205,6 +253,9 @@ class AutonomousLooperOnline():
 				self.featuresInCounter += 1
 			elif feature_name == 'loudness':
 				self.loudness_loops[loop_num, feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
+				self.featuresInCounter += 1
+			elif feature_name == 'pitch':
+				self.pitch_loops[loop_num, feature_component_num, :] = np.array(args)[:self.N_FFT_FRAMES]
 				self.featuresInCounter += 1
 			elif feature_name == 'onsets':
 				self.onsets = np.abs(np.array(args))
@@ -231,6 +282,12 @@ class AutonomousLooperOnline():
 			print(f'SEGMENT {self.BARS_COUNT}')
 			print('-'*50)
 
+			# compute tonnetz from chroma
+			self.tonnetz_sequence = librosa.feature.tonnetz(chroma=self.chroma_sequence, sr=self.sr)
+			for i in range(self.N_LOOPS):
+				self.tonnetz_loops[i,:,:] = librosa.feature.tonnetz(chroma=self.chroma_loops[i,:,:], sr=self.sr)
+
+			# compute bar loudness
 			bar_mean_loudness = self.loudness_sequence[0, :].mean() # mean loudness of bar
 			if not any(self.active_loops):
 				# INITIAL OPERATIONAL MODE
@@ -253,7 +310,7 @@ class AutonomousLooperOnline():
 								#if all(rules_satisfied): 
 								if satisfaction_degree >= self.STARTUP_SIMILARITY_THR: 
 									print(f'Segment selected for loop {i+1}')
-									self.client.send_message("/loopdecision/loop", str(i))
+									self.client.send_message(f"/loopdecision/loop/{self.candidate_segments_divisions[-1]}", str(i))
 									self.bars_loop_persisted[i] = 0
 									self.active_loops[i] = True
 					newdescriptors = []
@@ -261,25 +318,64 @@ class AutonomousLooperOnline():
 						newdescriptors.append(descriptor.copy())
 					self.previous_descriptors.append(newdescriptors)
 					del self.previous_descriptors[0] # remove firts element of bar list (make circular buffer)
+			
 			else:
+
 				# BASIC OPERATIONAL MODE
 				all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
 				all_loops_rules_satisfied = [False for _ in range(self.N_LOOPS)]
+				selected_candidate_nums = [0 for _ in range(self.N_LOOPS)]
 				# COMPUTE COMPARISON METRICS
 				for i in range(self.N_LOOPS):
-					bar_sequence_descriptors = self.getCurrentSequenceDescriptors()
+
+					# get descriptors
+					#bar_sequence_descriptors = self.getCurrentSequenceDescriptors()
 					sumOfLoops_sequence_descriptors = self.getSumOfLoopsDescriptors(i)
-					comparison_metrics = self.compareSequenceWithLoops(bar_sequence_descriptors, sumOfLoops_sequence_descriptors, self.RHYTHM_SUBDIVISIONS)
-					# EVALUATE LOOPING RULES
-					rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
-					all_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
-					all_loops_rules_satisfied[i] = all(rules_satisfied)
-					print(f'Loop {i+1}')
+
+					# compute candidate segments based on segment divisions
+					candidate_segments_descriptors = []
+					for n in self.candidate_segments_divisions:
+						candidate_segment_descriptors = self.getCurrentSequenceDescriptorsWDivisions(n)
+						candidate_segments_descriptors.append(candidate_segment_descriptors)
+
+					# Check for multiple candidate segments
+					candidates_satisfaction_degrees = []
+					# compute rules for each candidate segment
+					for segment_descriptors in candidate_segments_descriptors:
+						# COMPUTE COMPARISON METRICS
+						comparison_metrics = self.compareSequenceWithLoops(segment_descriptors, sumOfLoops_sequence_descriptors, self.RHYTHM_SUBDIVISIONS)
+						# EVALUATE LOOPING RULES
+						rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
+						cumulative_satisfaction_degree = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
+						# set satisfaction degree to 0 if rules not satisfied
+						if all(rules_satisfied):
+							candidates_satisfaction_degrees.append(cumulative_satisfaction_degree)
+						else:
+							candidates_satisfaction_degrees.append(0)
+
+					max_candidates_satisfaction_degree = np.argmax(np.array(candidates_satisfaction_degrees))
+					all_loops_satisfaction_degrees[i] = candidates_satisfaction_degrees[max_candidates_satisfaction_degree]
+					all_loops_rules_satisfied[i] = True if candidates_satisfaction_degrees[max_candidates_satisfaction_degree] != 0 else False
+					selected_candidate_nums[i] = max_candidates_satisfaction_degree
+					
+					print(f'Loop track L_{i+1}')
+					print(f'Most satisfactory candidate is segment {max_candidates_satisfaction_degree+1}')
 					print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
+
+					#comparison_metrics = self.compareSequenceWithLoops(bar_sequence_descriptors, sumOfLoops_sequence_descriptors, self.RHYTHM_SUBDIVISIONS)
+					# EVALUATE LOOPING RULES
+					#rules_satisfied, rules_satisfaction_degree = self.evaluateLoopingRules(self.looping_rules[i], comparison_metrics)
+					#all_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
+					#all_loops_rules_satisfied[i] = all(rules_satisfied)
+					#print(f'Loop {i+1}')
+					#print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
+				
 				# UPDATE LOOPS
 				all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
-				all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
-				for i in range(self.N_LOOPS):
+				#all_loops_satisfaction_degrees = np.sort(np.array(all_loops_satisfaction_degrees)).tolist()
+				#for i in range(self.N_LOOPS):
+				loops_sorted_by_satisfaction_degree = np.argsort(np.array(all_loops_satisfaction_degrees)).tolist()
+				for i in range(len(loops_sorted_by_satisfaction_degree)):				
 					# CHECK IF LOOP SHOULD BE UPDATED
 					if all_loops_rules_satisfied[i]:
 						if self.bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
@@ -288,22 +384,25 @@ class AutonomousLooperOnline():
 								print('-'*50)
 								print(f'Bar {self.BARS_COUNT} selected for loop {i+1}')
 								print('-'*50)
-								self.client.send_message("/loopdecision/loop", str(i))
+								self.client.send_message(f"/loopdecision/loop/{str(self.candidate_segments_divisions[selected_candidate_nums[i]])}", str(i))
 								self.bars_loop_persisted[i] = 0
 								self.active_loops[i] = True
 								self.selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 								break
+
 							elif self.LOOP_CHANGE_RULE == "better":
 								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= self.selected_loops_satisfaction_degrees[i]:
 									print('')
 									print('-'*50)
 									print(f'Bar {self.BARS_COUNT} selected for loop {i+1}')
 									print('')
-									self.client.send_message("/loopdecision/loop", str(i))
+									self.client.send_message(f"/loopdecision/loop/{str(self.candidate_segments_divisions[selected_candidate_nums[i]])}", str(i))
 									self.bars_loop_persisted[i] = 0
 									self.active_loops[i] = True
 									self.selected_loops_satisfaction_degrees[i] = sum(rules_satisfaction_degree)/len(rules_satisfaction_degree)
 									break
+				
+
 				# CHECK IF LOOP SHOULD BE DROPPED
 				for i in range(self.N_LOOPS):
 					if self.bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
@@ -313,6 +412,7 @@ class AutonomousLooperOnline():
 						self.active_loops[i] = False
 					else: 
 						self.bars_loop_persisted[i] += 1
+			
 			self.BARS_COUNT += 1
 
 	def evaluateLoopingRules(self, looping_rules, comparison_metrics):
@@ -375,9 +475,12 @@ class AutonomousLooperOnline():
 		CQT_var_seq = np.std([CQT_mean[i]*i for i in range(CQT_mean.shape[0])])
 		chroma_seq = self.chroma_sequence[:,:]
 		discretechroma_seq = np.array([chroma_seq[:,j] for j in onsets_seq])
+		tonnetz_seq = self.tonnetz_sequence[:,:]
+		discretetonnetz_seq = np.array([tonnetz_seq[:,j] for j in onsets_seq])
 		loudness_seq = self.loudness_sequence[0,:]
 		discreteloudness_seq = np.array([loudness_seq[j] for j in onsets_seq])
-		centroid_seq = self.spectralshape_sequence[0,:]
+		#centroid_seq = self.spectralshape_sequence[0,:]
+		centroid_seq = self.pitch_sequence[0,:]
 		discretecentroid_seq = np.array([centroid_seq[j] for j in onsets_seq])
 		flatness_seq = self.spectralshape_sequence[5,:]
 		discreteflatness_seq = np.array([flatness_seq[j] for j in onsets_seq])
@@ -387,9 +490,98 @@ class AutonomousLooperOnline():
 									chroma_seq, discretechroma_seq,
 									loudness_seq.reshape(1,-1), discreteloudness_seq,
 									centroid_seq.reshape(1,-1), discretecentroid_seq,
-									flatness_seq.reshape(1,-1), discreteflatness_seq]
+									flatness_seq.reshape(1,-1), discreteflatness_seq,
+									tonnetz_seq, discretetonnetz_seq]
 		
 		return bar_sequence_descriptors
+
+
+	def getCurrentSequenceDescriptorsWDivisions(self, n=1):
+
+		segment_length_frames = int(self.frames_per_beat*n)+1
+
+		# process features
+		# current sequence features
+		onsets_seq = self.onsets_sequence
+		binary_rhythm_seq = self.binaryRhythms_sequence
+
+		# CQT
+		candidate_segment = np.zeros((self.N_MELBANDS, self.N_FFT_FRAMES))
+		segment = self.melbands_sequence[:,-segment_length_frames:]
+		#num_repetitions = int(self.BEATS_PER_LOOP / n)
+		for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))+1):
+			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
+		CQT_seq = candidate_segment.copy()
+		CQT_mean = CQT_seq.mean(axis=1)
+		CQT_center_of_mass_seq = sum([CQT_mean[i]*i for i in range(CQT_mean.shape[0])]) / sum(CQT_mean)
+		CQT_var_seq = np.std([CQT_mean[i]*i for i in range(CQT_mean.shape[0])])
+		
+		# chroma
+		candidate_segment = np.zeros((self.N_CHROMA, self.N_FFT_FRAMES))
+		segment = self.chroma_sequence[:,-segment_length_frames:]
+		#num_repetitions = int(self.BEATS_PER_LOOP / n)
+		for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))+1):
+			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
+		chroma_seq = candidate_segment.copy()
+		discretechroma_seq = np.array([chroma_seq[:,j] for j in onsets_seq])
+
+		# tonnetz
+		candidate_segment = np.zeros((self.N_TONNETZ, self.N_FFT_FRAMES))
+		segment = self.tonnetz_sequence[:,-segment_length_frames:]
+		#num_repetitions = int(self.BEATS_PER_LOOP / n)
+		for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))+1):
+			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
+		tonnetz_seq = candidate_segment.copy()
+		discretetonnetz_seq = np.array([tonnetz_seq[:,j] for j in onsets_seq])
+		
+		# loudness
+		candidate_segment = np.zeros((self.N_LOUDNESS, self.N_FFT_FRAMES))
+		segment = self.loudness_sequence[:,-segment_length_frames:]
+		#num_repetitions = int(self.BEATS_PER_LOOP / n)
+		for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))+1):
+			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
+		loudness_seq = candidate_segment.copy()[0,:]
+		discreteloudness_seq = np.array([loudness_seq[j] for j in onsets_seq])
+
+		# centroid
+		candidate_segment = np.zeros((self.N_SPECTRALSHAPE, self.N_FFT_FRAMES))
+		segment = self.spectralshape_sequence[:,-segment_length_frames:]
+		#num_repetitions = int(self.BEATS_PER_LOOP / n)
+		for k in range(int(self.BEATS_PER_LOOP / (n * self.min_loop_division))+1):
+			candidate_segment[:,k*segment_length_frames:(k+1)*segment_length_frames] = np.array(segment)
+		
+		centroid_seq = candidate_segment.copy()[0,:]
+		discretecentroid_seq = np.array([centroid_seq[j] for j in onsets_seq])
+
+		flatness_seq = candidate_segment.copy()[5,:]
+		discreteflatness_seq = np.array([flatness_seq[j] for j in onsets_seq])
+
+
+		bar_sequence_descriptors = [binary_rhythm_seq, np.array(onsets_seq), 
+									CQT_seq, CQT_center_of_mass_seq, CQT_var_seq,
+									chroma_seq, discretechroma_seq,
+									loudness_seq.reshape(1,-1), discreteloudness_seq,
+									centroid_seq.reshape(1,-1), discretecentroid_seq,
+									flatness_seq.reshape(1,-1), discreteflatness_seq,
+									tonnetz_seq, discretetonnetz_seq]
+		
+		return bar_sequence_descriptors
+
+
+	def getBinaryRhythm(self, onsets):
+
+		interval_size = int(self.N_BAR_SAMPLES / self.RHYTHM_SUBDIVISIONS)
+		binary_rhythm = []
+		for i in range(0, self.N_BAR_SAMPLES, interval_size):
+			# if there is a onset in the bar division 1, otherwise 0
+			flag = 0
+			flag_dynamic = 0
+			for onset in onsets:
+				if onset > i and onset <= i+interval_size:
+					flag = 1
+			binary_rhythm.append(flag)
+		return binary_rhythm
+
 
 	def getSumOfLoopsDescriptors(self, loopNumber):
 
@@ -402,9 +594,12 @@ class AutonomousLooperOnline():
 		CQT_var_sum = np.std([CQT_mean[i]*i for i in range(CQT_mean.shape[0])])
 		chroma_sum = self.chroma_loops[loopNumber,:,:]
 		discretechroma_sum = np.array([chroma_sum[:,j] for j in onsets_sum])
+		tonnetz_sum = self.tonnetz_loops[loopNumber,:,:]
+		discretetonnetz_sum = np.array([tonnetz_sum[:,j] for j in onsets_sum])
 		loudness_sum = self.loudness_loops[loopNumber,0,:]
 		discreteloudness_sum = np.array([loudness_sum[j] for j in onsets_sum])
-		centroid_sum = self.spectralshape_loops[loopNumber,0,:]
+		#centroid_sum = self.spectralshape_loops[loopNumber,0,:]
+		centroid_sum = self.pitch_loops[loopNumber,0,:]
 		discretecentroid_sum = np.array([centroid_sum[j] for j in onsets_sum])
 		flatness_sum = self.spectralshape_loops[loopNumber,5,:]
 		discreteflatness_sum = np.array([flatness_sum[j] for j in onsets_sum])
@@ -414,7 +609,8 @@ class AutonomousLooperOnline():
 											chroma_sum, discretechroma_sum,
 											loudness_sum.reshape(1,-1), discreteloudness_sum,
 											centroid_sum.reshape(1,-1), discretecentroid_sum,
-											flatness_sum.reshape(1,-1), discreteflatness_sum]
+											flatness_sum.reshape(1,-1), discreteflatness_sum,
+											tonnetz_sum, discretetonnetz_sum]
 
 		return sumOfLoops_sequence_descriptors
 
@@ -438,6 +634,14 @@ class AutonomousLooperOnline():
 		_, chroma_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[5], sumOfLoops_sequence_descriptors[5])
 		_, chroma_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[6], 
 																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[6])
+
+		## TONNETZ
+		if self.verbose == 2:
+			print('Tonnetz:')
+		tonnetz_AE = self.computeTwodimensionalAE(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
+		_, tonnetz_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
+		_, tonnetz_discrete_correlation = self.computeTwodimensionalDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[14], 
+																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[14])
 
 		## LOUDNESS
 		if self.verbose == 2:
