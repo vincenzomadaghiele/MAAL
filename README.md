@@ -107,6 +107,9 @@ The all works by comparing sound segments according to specific sequence-level c
 | Frequency range overlap |  Mel Spectrum  | Overlap of estimated bandwidths |
 | Rhythmic similarity | Binary Rhythm, Onset | Hamming distance | 
 | Rhythmic density | Binary Rhythm, Onset | MSE on quantized sequence | 
+| Harmonic function similarity| Tonnetz | MSE on sequence |
+| Harmonic function transitions - C | Tonnetz | PCC on sequence |
+| Harmonic function transitions - D | Tonnetz, Onset | PCC at onsets |
 
 
 
