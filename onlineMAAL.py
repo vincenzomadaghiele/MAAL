@@ -1,5 +1,5 @@
 import argparse
-from onlineALLclass import AutonomousLooperOnline
+from onlineMAALclass import AutonomousLooperOnline
 
 if __name__ == '__main__': 
 

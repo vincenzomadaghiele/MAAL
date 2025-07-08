@@ -1,14 +1,14 @@
-# Autonomous Live looper (ALL)
+# MAAL - Multi-Agent Autonomous Looper
 
-The Autonomous Live Looper (ALL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The ALL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
-The Autonomous Live Looper aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
+The Multi-Agent Autonomous Looper (MAAL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The MAAL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
+The MAAL aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
-<img src="https://github.com/vincenzomadaghiele/ALL-Autonomous-Live-Looper/blob/main/ALL_GUI.png" alt="drawing"  width="100%"/>
+<img src="https://github.com/vincenzomadaghiele/MAAL/blob/main/ALL_GUI.png" alt="drawing"  width="100%"/>
 
 
 More information about the project is in the paper:
 > Vincenzo Madaghiele, Stefano Fasciani, Tejaswinee Kelkar, Çagri Erdem.
-> [**ALL: Autonomous Live Looper for improvised co-creation of musical structures**]().
+> [**MAAL: a multi-agent autonomous live looper for improvised co-creation of musical structures**]().
 > In _Proceedings of AI and Music Creativity Conference (AIMC) 2025_, 10-12 September 2025, Bruxelles (BE).
 
 
@@ -29,7 +29,6 @@ Download the Flucoma library for PD following the instructions [here](https://le
 The `zexy` library for PD is used for OSC communication between python and PD, it can be installed by typing `zexy` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
 
 The `iem_tab` library for PD is used for buffer operations in PD, it can be installed by typing `iem_tab` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
-
 
 The `else` library for PD is used for GUI objects in PD, it can be installed by typing `else` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
 
@@ -115,7 +114,7 @@ The all works by comparing sound segments according to specific sequence-level c
 ```
 @inproceedings{madaghiele2024RLimpro,
   author    = {Madaghiele, Vincenzo and Fasciani, Stefano and Kelkar, Tejaswinee and Erdem, Çagri},
-  title     = {{ALL: Autonomous Live Looper for improvised co-creation of musical structures}},
+  title     = {{MAAL: a multi-agent autonomous live looper for improvised co-creation of musical structures}},
   booktitle = {Proceedings of AI and Music Creativity Conference (AIMC)},
   year      = {2025},
   month     = {09},
