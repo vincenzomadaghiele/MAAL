@@ -3,7 +3,7 @@
 The Multi-Agent Autonomous Looper (MAAL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The MAAL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
 The MAAL aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
-<img src="https://github.com/vincenzomadaghiele/MAAL/blob/main/ALL_GUI.png" alt="drawing"  width="100%"/>
+<img src="https://github.com/vincenzomadaghiele/MAAL/blob/main/MAAL_GUI.png" alt="drawing"  width="100%"/>
 
 
 More information about the project is in the paper:
