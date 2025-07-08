@@ -37,7 +37,7 @@ The `else` library for PD is used for GUI objects in PD, it can be installed by 
 Just play live with the looper without messing around with custom settings! 
 Just run:
 ```
-python3 onlineALL.py
+python3 onlineMAAL.py
 ```
 This will use the default `config.json` file in this repo.
 
@@ -46,7 +46,7 @@ This will use the default `config.json` file in this repo.
 
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository; set the audiofile to be used for the offline ALL in the python script. Then run:
 ```
-python3 offlineALL.py --SOUNDFILE_FILEPATH <path/to/soundfile.wav> --CONFIG_FILEPAHT <path/to/configfile.json> --OUTPUT_DIR_PATH <path/to/outputdir>
+python3 offlineMAAL.py --SOUNDFILE_FILEPATH <path/to/soundfile.wav> --CONFIG_FILEPAHT <path/to/configfile.json> --OUTPUT_DIR_PATH <path/to/outputdir>
 ```
 This will generate a the corresponding audiotracks and visualizations in a new folder with the same name as the soudfile in `<path/to/outputdir>`.
 
@@ -56,7 +56,7 @@ This will generate a the corresponding audiotracks and visualizations in a new f
 
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository. Then run:
 ```
-python3 onlineALL.py --CONFIG_FILEPAHT <path/to/configfile.json>
+python3 onlineMAAL.py --CONFIG_FILEPAHT <path/to/configfile.json>
 ```
 This python script will load and set up a PD patch as well.
 
