@@ -3,7 +3,7 @@ This file is part of Multi-Agent Autonomous Looper (MAAL).
 Multi-Agent Autonomous Looper (MAAL) is a co-creative sampler and looper 
 based on a multi-agent logic algorithm and machine listening. 
 
-The MAAL can be obtained at http://stefanofasciani.com/dgmd.html
+The MAAL can be obtained at https://github.com/vincenzomadaghiele/MAAL
 DGMD Copyright (C) 2025 Vincenzo Madaghiele, Stefano Fasciani, Tejaswinee Kelkar, Çagri Erdem, University of Oslo
 Inquiries: vincenzo.madaghiele@gmail.com
 
