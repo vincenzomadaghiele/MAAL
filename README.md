@@ -1,9 +1,7 @@
-# MAAL - Multi-Agent Autonomous Looper
+# MAAL: Multi-Agent Autonomous Looper
 
 The Multi-Agent Autonomous Looper (MAAL) is a co-creative sampler/looper based on a multi-agent logic algorithm and machine listening. The MAAL is composed of several agents, each controlling a loop track, which can autonomously decide to sample and play back segments of a live vocal performance by listening to each other. 
-The MAAL aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
-
-<img src="https://github.com/vincenzomadaghiele/MAAL/blob/main/MAAL_GUI.png" alt="drawing"  width="100%"/>
+The Multi-Agent Autonomous Looper aims to expands the possibilities for indirect control, interaction, and co-creativity in live looping for improvising musicians. 
 
 
 More information about the project is in the paper:
@@ -18,7 +16,7 @@ More information about the project is in the paper:
 Download and install anaconda [here](https://puredata.info/downloads).
 Open a terminal and run the following instructions to install the dependencies:
 ```
-conda env create -f looper-environment.yml
+conda env create -f environment.yml
 conda activate looper
 ```
 
@@ -33,20 +31,11 @@ The `iem_tab` library for PD is used for buffer operations in PD, it can be inst
 The `else` library for PD is used for GUI objects in PD, it can be installed by typing `else` in the deken externals manager (`Help -> find externals`) and clicking on `install`.
 
 
-## Quick start
-Just play live with the looper without messing around with custom settings! 
-Just run:
-```
-python3 onlineMAAL.py
-```
-This will use the default `config.json` file in this repo.
+## Offline MAAL
 
-
-## Offline ALL
-
-Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository; set the audiofile to be used for the offline ALL in the python script. Then run:
+Open a terminal. Configure the settings of the looper by modifying a configuration file like `00_offline_MAAL/config.json` in this repository; set the audiofile to be used for the offline ALL in the python script. Then run:
 ```
-python3 offlineMAAL.py --SOUNDFILE_FILEPATH <path/to/soundfile.wav> --CONFIG_FILEPAHT <path/to/configfile.json> --OUTPUT_DIR_PATH <path/to/outputdir>
+python3 00_offline_MAAL/offlineMAAL.py --SOUNDFILE_FILEPATH <path/to/soundfile.wav> --CONFIG_FILEPAHT <path/to/configfile.json> --OUTPUT_DIR_PATH <path/to/outputdir>
 ```
 This will generate a the corresponding audiotracks and visualizations in a new folder with the same name as the soudfile in `<path/to/outputdir>`.
 
@@ -54,15 +43,15 @@ This will generate a the corresponding audiotracks and visualizations in a new f
 
 ## Online ALL
 
-Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository. Then run:
+Open a terminal. Configure the settings of the looper by modifying a configuration file like `01_online_MAAL/config.json` in this repository. Then run:
 ```
-python3 onlineMAAL.py --CONFIG_FILEPAHT <path/to/configfile.json>
+python3 01_online_MAAL/onlineMAAL.py --CONFIG_FILEPAHT <path/to/configfile.json>
 ```
 This python script will load and set up a PD patch as well.
 
 
 ## Configuration options
-The ALL can be configured by changing the settings in a `./config.json` file. This is a list of the possible configuration options:
+The ALL can be configured by changing the settings in a `config.json` file. This is a list of the possible configuration options:
 
 | Settings name | Description | Value range |
 | --- | --- | :--: |
@@ -71,7 +60,7 @@ The ALL can be configured by changing the settings in a `./config.json` file. Th
 | <b>rhythm_subdivision</b>: <i>int</i> | Quantization of a loop for rhythm analysis. | any |
 | <b>startup-mode</b>: <i>string</i> | Mode for selection of first loop. | <i>repetition</i> or <i>user-set</i> |
 | <b>startup-repetition-numBars</b>: <i>int</i> | Number of consecutive repetitions at for <i>repetition</i> startup mode. | any |
-| <b>startup-similarityThreshold</b>: <i>float</i> | Similarity threshold for for <i>repetition</i> startup mode. | [0,1] |
+| <b>startup-similarityThreshold</b>: <i>float</i> | Similarity threshold for <i>repetition</i> startup mode. | [0,1] |
 | <b>startup-firstLoopBar</b>: <i>int</i> | Number of first loop to be selected in <i>user-set</i> startup mode. | any |
 | <b>minLoopsRepetition</b>: <i>int</i> | Minimum number of repetitions for a loop before it can be dropped. | any |
 | <b>maxLoopsRepetition</b>: <i>int</i> | Maximum number of repetitions for a loop after which it is dropped. | any |
@@ -107,9 +96,6 @@ The all works by comparing sound segments according to specific sequence-level c
 | Frequency range overlap |  Mel Spectrum  | Overlap of estimated bandwidths |
 | Rhythmic similarity | Binary Rhythm, Onset | Hamming distance | 
 | Rhythmic density | Binary Rhythm, Onset | MSE on quantized sequence | 
-| Harmonic function similarity| Tonnetz | MSE on sequence |
-| Harmonic function transitions - C | Tonnetz | PCC on sequence |
-| Harmonic function transitions - D | Tonnetz, Onset | PCC at onsets |
 
 
 

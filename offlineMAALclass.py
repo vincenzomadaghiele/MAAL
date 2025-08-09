@@ -1,32 +1,3 @@
-'''
-This file is part of Multi-Agent Autonomous Looper (MAAL).
-Multi-Agent Autonomous Looper (MAAL) is a co-creative sampler and looper 
-based on a multi-agent logic algorithm and machine listening. 
-
-The MAAL can be obtained at https://github.com/vincenzomadaghiele/MAAL
-DGMD Copyright (C) 2025 Vincenzo Madaghiele, Stefano Fasciani, Tejaswinee Kelkar, Çagri Erdem, University of Oslo
-Inquiries: vincenzo.madaghiele@gmail.com
-
-The MAAL is free software: you can redistribute it and/or modify it under the 
-terms of the GNU Lesser General Public License as published by the Free Software 
-Foundation, either version 3 of the License, or (at your option) any later version.
-
-The MAAL is distributed as a creative tool for musicians and researcher, WITHOUT ANY WARRANTY; 
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
-See the GNU Less General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License along with DGMD. 
-If not, see <http://www.gnu.org/licenses/>.
- 
-If you use the DGMD or any part of it in any system or publication, please acknowledge 
-its authors by adding a reference to this publications:
-
-V. Madaghiele, S. Fasciani, T. Kelkar, Ç. Erdem. 
-"MAAL: a multi-agent autonomous live looper for improvised co-creation of musical structures"
-In Proceedings of AI and Music Creativity Conference (AIMC) 2025, 10-12 September 2025, Bruxelles (BE).
-'''
-
-
 import librosa
 import os
 import json
@@ -50,21 +21,26 @@ class AutonomousLooperOffline():
 				soundfile_filepath,
 				config_filepath='./config.json',
 				max_signal_size=10000000,
+				sr=44100,
 				seed=None,
 				plotFlag=False,
 				makeVideo=False, 
 				verbose=0):
 
-		print()
-		print('Initializing Autonomous Looper offline')
-		print('-'*50)
-		print()
+		self.verbose = verbose
+		if self.verbose >= 1:
+			print()
+			print('Initializing Autonomous Looper offline')
+			print('-'*50)
+			print()
 
 		# LOAD LOOPER PROPERTIES FROM CONFIGURATION FILE
 		with open(config_filepath, 'r') as file:
 			config = json.load(file)
-		print('Configuration options:')
-		print(json.dumps(config, indent=4))
+
+		if self.verbose >= 1:
+			print('Configuration options:')
+			print(json.dumps(config, indent=4))
 		self.config = config
 		self.looping_rules = config["looping-rules"]
 		self.MIN_LOOPS_REPETITION = config["minLoopsRepetition"] # minimun number of times a loop is repeated
@@ -95,22 +71,22 @@ class AutonomousLooperOffline():
 
 		# CONFIGURE LOOP STATION WITH OPTIONS
 		self.PLOT_FLAG = plotFlag
-		self.verbose = verbose
 		self.MAKE_VIDEO = makeVideo
 		self.N_LOOPS = len(self.looping_rules)
 		self.MAX_SIGNAL_SIZE = max_signal_size
 
 		# LOAD AUDIO TRACK  
 		self.soundfile_filepath = soundfile_filepath
-		self.signal, self.sr = librosa.load(soundfile_filepath, sr=44100, mono=True)
+		self.signal, self.sr = librosa.load(soundfile_filepath, sr=sr, mono=True)
 		self.signal = self.signal[:self.MAX_SIGNAL_SIZE]
 
-		print()
-		print(f'Loading soundfile: {soundfile_filepath}')
-		print('-'*50)
-		print('num samples: ', self.signal.shape)
-		print('time: {:2.3f} seconds '.format(librosa.samples_to_time(self.signal.shape[0], sr=self.sr)))
-		print()
+		if self.verbose >= 1:
+			print()
+			print(f'Loading soundfile: {soundfile_filepath}')
+			print('-'*50)
+			print('num samples: ', self.signal.shape)
+			print('time: {:2.3f} seconds '.format(librosa.samples_to_time(self.signal.shape[0], sr=self.sr)))
+			print()
 		
 		if self.PLOT_FLAG:
 			plt.figure(figsize=(10, 3))
@@ -139,7 +115,8 @@ class AutonomousLooperOffline():
 			if self.BEATS_PER_LOOP % n == 0:
 				self.candidate_segments_divisions.append(n)
 		self.candidate_segments_divisions.append(self.BEATS_PER_LOOP)
-		print(f'Candidate segment divisions: {self.candidate_segments_divisions}')
+		if self.verbose >= 1:
+			print(f'Candidate segment divisions: {self.candidate_segments_divisions}')
 
 		# subdivide into 
 		self.min_loop_division = self.candidate_segments_divisions[0]
@@ -166,11 +143,25 @@ class AutonomousLooperOffline():
 		silence_threshold = 0.0003
 		user_set_bar_count = 0
 
+		for n in range(0,self.BEATS_PER_LOOP):
+			decisions_bar = {}
+			decisions_bar['subdivision_index (m)'] = n
+			decisions_bar['decisions'] = []
+			# update log
+			decisions_element = {}
+			decisions_element['decision_type'] = 'R'
+			decisions_element['loop_track (i)'] = None
+			decisions_element['num_beats (T_l)'] = None
+			decisions_element['satisfaction_degree'] = None
+			decisions_bar['decisions'].append(decisions_element)
+			decisions_log.append(decisions_bar)
+
 		for bar_num in range(self.BEATS_PER_LOOP, len(self.signal_subdivided_samples)):
 
-			print('')
-			print(f'Segment {bar_num}')
-			print('-' * 40)
+			if self.verbose >= 1:
+				print('')
+				print(f'Segment {bar_num}')
+				print('-' * 40)
 
 			# update log
 			decisions_bar = {}
@@ -215,8 +206,9 @@ class AutonomousLooperOffline():
 						all_loops_satisfaction_degrees = [0 for _ in range(self.N_LOOPS)]
 						for i in range(len(loops)):
 							rules_satisfied, satisfaction_degree = self.evaluateStartupRepetitionCriteria(self.looping_rules[i], previous_metrics, comparison_metrics)
-							print(f'Loop {i+1}')
-							print(f'Rule satisfaction degree {satisfaction_degree:.3f}')
+							if self.verbose >= 1:
+								print(f'Loop {i+1}')
+								print(f'Rule satisfaction degree {satisfaction_degree:.3f}')
 							all_loops_satisfaction_degrees[i] = satisfaction_degree
 
 						# Start checking rules from the largest satisfaction degree
@@ -224,8 +216,9 @@ class AutonomousLooperOffline():
 						for i in range(len(loops_sorted_by_satisfaction_degree)):
 							if not any(active_loops): # check that loops haven't been activated in the meantime
 								if all_loops_satisfaction_degrees[i] >= self.STARTUP_SIMILARITY_THR: 
-									print('')
-									print(f'Decision I_{i+1} ---> Segment selected for loop {i+1}')
+									if self.verbose >= 1:
+										print('')
+										print(f'Decision I_{i+1} ---> Segment selected for loop {i+1}')
 									loops[i] = self.crown_window * bar
 									loops_bars[i].append(bar_num)
 									loops_candidate_num[i].append(0) # index of candidate in candidates array
@@ -239,7 +232,7 @@ class AutonomousLooperOffline():
 									decisions_element['decision_type'] = 'I'
 									decisions_element['loop_track (i)'] = i
 									decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[-1]
-									decisions_element['satisfaction_degree'] = satisfaction_degree
+									decisions_element['satisfaction_degree'] = float(satisfaction_degree)
 									decisions_bar['decisions'].append(decisions_element)
 								
 								# UPDATE LOOPER AUDIOTRACKS
@@ -250,8 +243,9 @@ class AutonomousLooperOffline():
 						del previous_bars[0] # remove firts element of bar list (make circular buffer)
 					
 					if not updated:
-						print('')
-						print(f'Decision R ---> No updates')
+						if self.verbose >= 1:
+							print('')
+							print(f'Decision R ---> No updates')
 
 						# update log
 						decisions_element = {}
@@ -275,8 +269,9 @@ class AutonomousLooperOffline():
 						active_loops[0] = True
 						user_set_bar_count = 0
 						updated = True
-						print('')
-						print(f'Decision I_{i+1} ---> Segment selected for loop {i+1}')
+						if self.verbose >= 1:
+							print('')
+							print(f'Decision I_{i+1} ---> Segment selected for loop {i+1}')
 
 						# update log
 						decisions_element = {}
@@ -291,8 +286,9 @@ class AutonomousLooperOffline():
 							loops_audiotracks[i,int(self.signal_subdivided_samples[bar_num+1]):int(self.signal_subdivided_samples[bar_num+1])+(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)] = loops[i]
 
 					if not updated:
-						print('')
-						print(f'Decision R ---> No updates')
+						if self.verbose >= 1:
+							print('')
+							print(f'Decision R ---> No updates')
 
 						# update log
 						decisions_element = {}
@@ -337,9 +333,10 @@ class AutonomousLooperOffline():
 					all_loops_rules_satisfied[i] = True if candidates_satisfaction_degrees[max_candidates_satisfaction_degree] != 0 else False
 					selected_candidate_nums[i] = max_candidates_satisfaction_degree
 
-					print(f'Loop track L_{i+1}')
-					print(f'Most satisfactory candidate is segment {max_candidates_satisfaction_degree+1}')
-					print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
+					if self.verbose >= 1:
+						print(f'Loop track L_{i+1}')
+						print(f'Most satisfactory candidate is segment {max_candidates_satisfaction_degree+1}')
+						print(f'Rule satisfaction degree {all_loops_satisfaction_degrees[i]:.3f}')
 
 				# CHECK LOOP UPDATES
 				all_loops_satisfaction_degrees = [all_loops_satisfaction_degrees[i] if all_loops_rules_satisfied[i] else 0 for i in range(len(all_loops_satisfaction_degrees))]
@@ -349,8 +346,9 @@ class AutonomousLooperOffline():
 					if all_loops_rules_satisfied[i]:
 						if bars_loop_persisted[i] >= self.MIN_LOOPS_REPETITION:
 							if self.LOOP_CHANGE_RULE == "newer":
-								print('')
-								print(f'Decision A_{i+1} ---> Segment selected for loop {i+1}')
+								if self.verbose >= 1:
+									print('')
+									print(f'Decision A_{i+1} ---> Segment selected for loop {i+1}')
 								loops[i] = self.crown_window * candidate_segments_for_loops[i]
 								loops_bars[i].append(bar_num)
 								loops_candidate_num[i].append(selected_candidate_nums[i]) # index of candidate in candidates array
@@ -364,14 +362,15 @@ class AutonomousLooperOffline():
 								decisions_element['decision_type'] = 'A'
 								decisions_element['loop_track (i)'] = i
 								decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[selected_candidate_nums[i]]
-								decisions_element['satisfaction_degree'] = selected_loops_satisfaction_degrees[i]
+								decisions_element['satisfaction_degree'] = float(selected_loops_satisfaction_degrees[i])
 								decisions_bar['decisions'].append(decisions_element)
 
 								break
 							elif self.LOOP_CHANGE_RULE == "better":
 								if sum(rules_satisfaction_degree)/len(rules_satisfaction_degree) >= selected_loops_satisfaction_degrees[i]:
-									print('')
-									print(f'Decision A_{i+1} ---> Segment selected for loop {i+1}')
+									if self.verbose >= 1:
+										print('')
+										print(f'Decision A_{i+1} ---> Segment selected for loop {i+1}')
 									loops[i] = self.crown_window * candidate_segments_for_loops[i]
 									loops_bars[i].append(bar_num)
 									loops_candidate_num[i].append(selected_candidate_nums[i]) # index of candidate in candidates array
@@ -385,7 +384,7 @@ class AutonomousLooperOffline():
 									decisions_element['decision_type'] = 'A'
 									decisions_element['loop_track (i)'] = i
 									decisions_element['num_beats (T_l)'] = self.candidate_segments_divisions[selected_candidate_nums[i]]
-									decisions_element['satisfaction_degree'] = selected_loops_satisfaction_degrees[i]
+									decisions_element['satisfaction_degree'] = float(selected_loops_satisfaction_degrees[i])
 									decisions_bar['decisions'].append(decisions_element)
 
 									break
@@ -393,8 +392,9 @@ class AutonomousLooperOffline():
 				# CHECK IF LOOP SHOULD BE DROPPED
 				for i in range(len(loops)):
 					if bars_loop_persisted[i] >= self.MAX_LOOPS_REPETITION:
-						print('')
-						print(f'Decision Z_{i+1} ---> Clearing loop {i+1} audio buffer')
+						if self.verbose >= 1:
+							print('')
+							print(f'Decision Z_{i+1} ---> Clearing loop {i+1} audio buffer')
 						loops[i] = np.zeros(self.BEAT_SAMPLES * self.BEATS_PER_LOOP)
 						bars_loop_persisted[i] = 0
 						selected_loops_satisfaction_degrees[i] = 0
@@ -413,8 +413,9 @@ class AutonomousLooperOffline():
 					else: 
 						bars_loop_persisted[i] += 1
 				if not updated:
-					print('')
-					print(f'Decision R ---> No updates')
+					if self.verbose >= 1:
+						print('')
+						print(f'Decision R ---> No updates')
 
 					# update log
 					decisions_element = {}
@@ -440,9 +441,8 @@ class AutonomousLooperOffline():
 			shutil.rmtree(output_dir)
 		os.mkdir(output_dir)
 
-
-		#with open(f'{output_dir}/decisions_log.json', 'w', encoding='utf-8') as f:
-		#	json.dump(decisions_log, f, ensure_ascii=False, indent=4)
+		with open(f'{output_dir}/decisions_log.json', 'w', encoding='utf-8') as f:
+			json.dump(decisions_log, f, ensure_ascii=False, indent=4)
 
 		# SAVE SOUND FILES TO DISK
 		all_loops = loops_audiotracks.sum(axis=0) #/ self.N_LOOPS
@@ -450,8 +450,9 @@ class AutonomousLooperOffline():
 		signals.append(self.signal)
 		signals.append(all_loops)
 		signals = np.stack(signals)
-		print()
-		print('Saving files...')
+		if self.verbose >= 1:
+			print()
+			print('Saving files...')
 		sf.write(f'{output_dir}/signal_w_loops.wav', signals.T, self.sr, subtype='PCM_24')
 		sf.write(f'{output_dir}/signal.wav', self.signal, self.sr, subtype='PCM_24')
 		sf.write(f'{output_dir}/all_loops.wav', all_loops, self.sr, subtype='PCM_24')
@@ -500,7 +501,7 @@ class AutonomousLooperOffline():
 
 		ax[0].set_ylabel("$x(t)$", rotation=0, ha='right', fontsize=13)
 		ax[0].xaxis.set_visible(False)
-		fig.suptitle(f'AUTONOMOUS LIVE LOOPER OUTPUT ON TRACK \n {self.soundfile_filepath.split('/')[-1]}', size=16, y=0.9)
+		fig.suptitle(f'AUTONOMOUS LIVE LOOPER OUTPUT ON TRACK \n {self.soundfile_filepath.split("/")[-1]}', size=16, y=0.9)
 		plt.subplots_adjust(wspace=0, hspace=0)
 		plt.savefig(f'{output_dir}/loops_figure.png')
 		if self.PLOT_FLAG:
@@ -508,8 +509,8 @@ class AutonomousLooperOffline():
 
 
 		if self.MAKE_VIDEO:
-
-			print('Generating cursor animation...')
+			if self.verbose >= 1:
+				print('Generating cursor animation...')
 			tempdir = f'{output_dir}/temp'
 			if os.path.isdir(tempdir):
 			    for f in os.listdir(tempdir):
@@ -561,7 +562,7 @@ class AutonomousLooperOffline():
 				ax[0].set_ylabel("$x(t)$", rotation=0, ha='right', fontsize=13)
 				ax[0].xaxis.set_visible(False)
 				plt.subplots_adjust(wspace=0, hspace=0)
-				fig.suptitle(f'AUTONOMOUS LIVE LOOPER OUTPUT ON TRACK \n {self.soundfile_filepath.split('/')[-1]}', size=16, y=0.9)
+				fig.suptitle(f'AUTONOMOUS LIVE LOOPER OUTPUT ON TRACK \n {self.soundfile_filepath.split("/")[-1]}', size=16, y=0.9)
 				plt.savefig(tempdir+'/image'+str(step_count)+'.png')
 				plt.close()
 
@@ -630,18 +631,18 @@ class AutonomousLooperOffline():
 			sum_of_loops += loop
 		sumOfLoops_sequence_descriptors = self.computeSequenceDescriptors(sum_of_loops, sr, rhythm_subdivisions)
 	
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Binary rhythms:')
 		binary_comparison_coefficient, rhythm_density_coefficient = self.compareBinaryRhythms(bar_sequence_descriptors[0], sumOfLoops_sequence_descriptors[0], rhythm_subdivisions)
 
 		## SPECTRAL BANDWIDTH
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Spectral bandwidth:')
 		spectral_energy_overlap_coefficient, spectral_energy_difference_coefficient = self.compareSpectralBandwidth(bar_sequence_descriptors[2], bar_sequence_descriptors[3], bar_sequence_descriptors[4], 
 																													sumOfLoops_sequence_descriptors[2], sumOfLoops_sequence_descriptors[3], sumOfLoops_sequence_descriptors[4])
 
 		## CHROMA
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Chroma:')
 		chroma_AE = self.computeTwodimensionalAE(bar_sequence_descriptors[5], sumOfLoops_sequence_descriptors[5])
 		_, chroma_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[5], sumOfLoops_sequence_descriptors[5])
@@ -649,7 +650,7 @@ class AutonomousLooperOffline():
 																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[6])
 
 		## TONNETZ
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Chroma:')
 		tonnetz_AE = self.computeTwodimensionalAE(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
 		_, tonnetz_continuous_correlation = self.computeTwodimensionalContinuousCorrelation(bar_sequence_descriptors[13], sumOfLoops_sequence_descriptors[13])
@@ -657,7 +658,7 @@ class AutonomousLooperOffline():
 																					sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[14])
 
 		## LOUDNESS
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Loudness:')
 		loudness_MSE = self.computeSignalsMSE(bar_sequence_descriptors[7], sumOfLoops_sequence_descriptors[7])
 		_, loudness_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[7], sumOfLoops_sequence_descriptors[7])
@@ -665,7 +666,7 @@ class AutonomousLooperOffline():
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[8])
 
 		## PITCH
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Pitch:')
 		centroid_MSE = self.computeSignalsMSE(bar_sequence_descriptors[9], sumOfLoops_sequence_descriptors[9])
 		_, centroid_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[9], sumOfLoops_sequence_descriptors[9])
@@ -673,13 +674,13 @@ class AutonomousLooperOffline():
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[10])
 
 		## FLATNESS
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print('Spectral flatness:')
 		flatness_MSE = self.computeSignalsMSE(bar_sequence_descriptors[11], sumOfLoops_sequence_descriptors[11])
 		_, flatness_continuous_correlation = self.computeContinuousCorrelation(bar_sequence_descriptors[11], sumOfLoops_sequence_descriptors[11])
 		_, flatness_discrete_correlation = self.computeDiscreteCorrelation(bar_sequence_descriptors[1], bar_sequence_descriptors[12], 
 																	sumOfLoops_sequence_descriptors[1], sumOfLoops_sequence_descriptors[12])
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print()
 
 		# these have to match the order in self.RULE_NAMES
@@ -926,16 +927,16 @@ class AutonomousLooperOffline():
 
 	# FUNCTIONS TO COMPARE FEATURES
 	def compareBinaryRhythms(self, binary_rhythm1, binary_rhythm2, rhythm_subdivisions=16):
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(np.array(binary_rhythm1))
 			print(np.array(binary_rhythm2))
 		binary_comparison = [1 if binary_rhythm1[i] == binary_rhythm2[i] else 0 for i in range(len(binary_rhythm1))]
 		binary_comparison_coefficient = sum(binary_comparison) / rhythm_subdivisions 
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f'Binary Comparison coefficient: {binary_comparison_coefficient:.3f}')
 
 		rhythm_density_coefficient = abs(np.array(binary_rhythm1).sum() - np.array(binary_rhythm2).sum()) / rhythm_subdivisions
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f"Rhythm Density Comparison coefficient: {rhythm_density_coefficient:.3f}")
 		return binary_comparison_coefficient, rhythm_density_coefficient
 
@@ -972,11 +973,11 @@ class AutonomousLooperOffline():
 		spectral_energy_overlap_index = max(0, 
 		    min(CQT1_center_of_mass+CQT1_var, CQT2_center_of_mass+CQT2_var) - max(CQT1_center_of_mass-CQT1_var, CQT2_center_of_mass-CQT2_var))
 		spectral_energy_overlap_coefficient = min(spectral_energy_overlap_index, min(CQT1_var*2, CQT2_var*2)) / min(CQT1_var*2, CQT2_var*2)
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f"Spectral energy overlap coefficient: {spectral_energy_overlap_coefficient:.3f}")
 
 		spectral_energy_difference_coefficient = np.abs(CQT1_mean - CQT2_mean).mean()
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f"Spectral energy difference coefficient: {spectral_energy_difference_coefficient:.3f}")
 		return spectral_energy_overlap_coefficient, spectral_energy_difference_coefficient
 
@@ -986,7 +987,7 @@ class AutonomousLooperOffline():
 		normalized_signal1 = (signal1 - minsignal) / (maxsignal - minsignal)
 		normalized_signal2 = (signal2 - minsignal) / (maxsignal - minsignal)
 		MSE = ((normalized_signal1 - normalized_signal2)**2).mean()
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f'MSE between the two signal is: {MSE:.3f}')
 		return MSE
 
@@ -1018,12 +1019,12 @@ class AutonomousLooperOffline():
 			if np.isnan(pearson_correlation):
 				pearson_correlation = 0
 
-			if self.verbose >= 1:
+			if self.verbose >= 2:
 				print(f"Continuous pearson correlation coefficient: {pearson_correlation:.3f}")
 		else:
 			time_correlation_coefficient = 0
 			pearson_correlation = 0
-			if self.verbose >= 1:
+			if self.verbose >= 2:
 				print(f"Continuous pearson correlation coefficient: {pearson_correlation:.3f}")
 
 		return time_correlation_coefficient, pearson_correlation
@@ -1085,7 +1086,7 @@ class AutonomousLooperOffline():
 			if np.isnan(discrete_pearson_correlation):
 				discrete_pearson_correlation = 0
 
-			if self.verbose >= 1:
+			if self.verbose >= 2:
 				print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation:.3f}")
 		else: 
 			discrete_time_correlation_coefficient = 0
@@ -1099,7 +1100,7 @@ class AutonomousLooperOffline():
 		normalized_signal1 = (signal1 - minsignal) / (maxsignal - minsignal)
 		normalized_signal2 = (signal2 - minsignal) / (maxsignal - minsignal)
 		MSE = ((normalized_signal1 - normalized_signal2)**2).mean(axis=1).mean()
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f'MSE between the two signal is: {MSE:.3f}')
 		return MSE
 
@@ -1112,7 +1113,7 @@ class AutonomousLooperOffline():
 			plt.show()
 
 		similarity_coefficient = np.abs(np.mean(signal1.mean(axis=1) - signal2.mean(axis=1)))
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f"Absolute Error difference coefficient: {similarity_coefficient:.3f}")
 		return similarity_coefficient
 
@@ -1138,7 +1139,7 @@ class AutonomousLooperOffline():
 		if np.isnan(np.sum(continuous_pearson_correlation)):
 			continuous_pearson_correlation = np.array([0])
 
-		if self.verbose >= 1:
+		if self.verbose >= 2:
 			print(f"Continuous pearson correlation coefficient: {continuous_pearson_correlation.mean():.3f}")
 		return time_correlation_coefficient, continuous_pearson_correlation.mean()
 
@@ -1193,12 +1194,12 @@ class AutonomousLooperOffline():
 					discrete_pearson_correlation = np.array([0])
 
 			except:
-				if self.verbose >= 1:
+				if self.verbose >= 2:
 					print('COULD NOT COMPUTE CORRELATION')
 				discrete_time_correlation_coefficient = np.array([0])
 				discrete_pearson_correlation = np.array([0])
 
-			if self.verbose >= 1:
+			if self.verbose >= 2:
 				print(f"Discrete pearson correlation coefficient: {discrete_pearson_correlation.mean():.3f}")
 
 		return discrete_time_correlation_coefficient, discrete_pearson_correlation.mean()
