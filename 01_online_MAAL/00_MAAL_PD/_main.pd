@@ -2,7 +2,7 @@
 #X declare -lib zexy;
 #X declare -lib iem_tab;
 #X obj 65 45 adc~ 1;
-#N canvas 0 38 1512 916 AutonomousLiveLooper 0;
+#N canvas 0 38 1512 916 AutonomousLiveLooper 1;
 #X obj 382 124 cnv 19 420 508 empty empty AUTONOMOUS\ LIVE\ LOOPER 80 25 0 20 #feffc6 #404040 0;
 #X obj 110 124 cnv 19 265 190 empty empty AUDIO\ IN 80 25 0 20 #ffe3c6 #404040 0;
 #X obj 110 319 cnv 19 265 170 empty empty INTERACTION 60 25 0 20 #c7c6ff #404040 0;
@@ -15,7 +15,7 @@
 #X text 1214 103 SENDING DESCRIPTORS TO PYTHON;
 #N canvas 498 536 632 357 (subpatch) 0;
 #X array \$0-live-input 1 float 3;
-#A 0 0.0132261;
+#A 0 0.36;
 #X coords 0 1 1 -1 220 50 1 0 0;
 #X restore 137 219 graph;
 #X obj 140 219 hsl 215 50 0 1 0 0 empty \$0-rec-location-rcv empty -2 -10 0 12 #fcfcfc #ff0400 #000000 0 1;
