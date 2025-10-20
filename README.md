@@ -127,4 +127,6 @@ The all works by comparing sound segments according to specific sequence-level c
 
 ## Known bugs
 - released MAAL~ v0.0.0 is only tested on Pd-0.55-2 and Pd-0.56 and macOS Tahoe 26.0.1
-- PD MAAL~ standalone app only works at 44.1 kHz 
+- PD MAAL~ standalone app only works at 44.1 kHz
+- missing exec for windows release
+- externals need to be included in the release version
