@@ -42,7 +42,7 @@ python3 onlineMAAL.py
 This will use the default `config.json` file in this repo.
 
 
-## Offline ALL
+## Offline MAAL
 
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository; set the audiofile to be used for the offline ALL in the python script. Then run:
 ```
@@ -52,7 +52,7 @@ This will generate a the corresponding audiotracks and visualizations in a new f
 
 
 
-## Online ALL
+## Online MAAL
 
 Open a terminal. Configure the settings of the looper by modifying a configuration file like `config.json` in this repository. Then run:
 ```
@@ -125,4 +125,6 @@ The all works by comparing sound segments according to specific sequence-level c
 }
 ```
 
-
+## Known bugs
+- released MAAL~ v0.0.0 is only tested on Pd-0.55-2 and Pd-0.56 and macOS Tahoe 26.0.1
+- PD MAAL~ standalone app only works at 44.1 kHz 
